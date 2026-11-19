@@ -283,7 +283,7 @@ O que já vale para qualquer pessoa que clonar o repositório:
 - [ ] **Fase 5, frontend:** React, integração com Auth e API, dashboards e painel de experimentos
 - [ ] **Fase 6, pesquisa avançada:** otimização de portfólios, econometria, backtesting, modelos estocásticos, Machine Learning
 
-Não coloquei prazos. O tempo de cada fase depende da profundidade matemática que eu decidir dar a ela.
+Não coloquei prazos. O tempo de cada fase depende da profundidade matemática que eu decidir dar a ela. O plano detalhado passo a passo de engenharia para guiar o restante da aplicação está documentado em [Plano Geral de Desenvolvimento](docs/plano-de-desenvolvimento.md).
 
 ## Convenções
 
