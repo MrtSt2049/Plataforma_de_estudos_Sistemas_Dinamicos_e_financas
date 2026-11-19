@@ -2,7 +2,7 @@
 
 **Quantitative Finance & Computational Dynamics**
 
-![Status](https://img.shields.io/badge/status-em%20planejamento-yellow)
+![Status](https://img.shields.io/badge/status-fase%201%20em%20andamento-yellow)
 ![Python](https://img.shields.io/badge/python-3.12%2B-blue)
 
 Um laboratório para estudar finanças quantitativas e sistemas dinâmicos no mesmo código. A ideia é ter um lugar onde dá para formular uma hipótese, rodar um experimento e repetir o resultado meses depois, com os mesmos dados, parâmetros e sementes aleatórias.
@@ -17,15 +17,22 @@ Uma pergunta que serve de exemplo para o tipo de pesquisa que quero fazer aqui: 
 
 ## Estado atual
 
-O projeto está no começo. Ainda não existe código do motor científico.
+O motor científico começou a ser construído. O ambiente, a estrutura do pacote e os primeiros algoritmos existem e têm testes rodando.
 
 | O que | Situação |
 |---|---|
-| Arquitetura e stack | Definidas |
+| Arquitetura e stack | Definidas ([ADR 0001](docs/adr/0001-empacotamento-do-motor-e-ambiente.md)) |
 | Regras de desenvolvimento | Escritas (`.agents/rules/`) |
 | Design da interface | Primeira versão em `Assets/` |
-| Motor científico (Fase 1) | Próximo passo |
+| Motor científico (Fase 1) | Em andamento: ambiente com `uv`, validação de entradas, retornos, volatilidade e mapa logístico, todos com testes |
 | Backend, banco e frontend | Planejados, ainda sem código |
+
+Implementado no motor até agora:
+
+| Módulo | Funções | Documentação matemática |
+|---|---|---|
+| `quantlab.analysis` | `simple_returns`, `log_returns`, `cumulative_returns`, `historical_volatility`, `annualized_volatility` | [Retornos e volatilidade](docs/math/retornos-e-volatilidade.md) |
+| `quantlab.dynamics` | `logistic_map`, `simulate_logistic_map`, `logistic_fixed_points`, `logistic_lyapunov_exponent`, `classify_map_fixed_point`, `detect_period` | [Mapa logístico](docs/math/mapa-logistico.md) |
 
 Vou atualizar esta tabela conforme as fases forem saindo do papel. Nenhum item é marcado como pronto antes de ter código e testes rodando.
 
@@ -113,7 +120,7 @@ A fonte dos dados de mercado para a 0.1 ainda está em aberto. Quando eu escolhe
 
 ## Estrutura do repositório
 
-Esta é a estrutura prevista. Hoje existem apenas `Assets/` e `.agents/`.
+Esta é a estrutura prevista. Hoje existem `engine/quantlab/` (com `analysis/` e `dynamics/`), `tests/`, `docs/`, `Assets/` e `.agents/`. Os outros diretórios serão criados quando a fase correspondente começar.
 
 ```
 quantlab/
@@ -166,7 +173,41 @@ Uma observação sobre interpretação: simular um modelo caótico de preços mo
 
 ## Como rodar
 
-Ainda não há nada para rodar. Quando os primeiros módulos do motor estiverem prontos, esta seção terá os comandos reais de instalação, testes e exemplos.
+Pré-requisito: [uv](https://docs.astral.sh/uv/). Ele instala o Python certo (3.13, fixado em `.python-version`) e as versões exatas do `uv.lock`.
+
+```bash
+uv sync                 # cria .venv com o motor e as ferramentas de desenvolvimento
+uv run pytest --cov     # testes com cobertura
+uv run ruff check .     # lint
+uv run ruff format .    # formatação
+uv run mypy             # tipagem (modo strict)
+```
+
+Exemplo de uso do motor:
+
+```python
+import pandas as pd
+
+from quantlab.analysis import annualized_volatility, cumulative_returns, log_returns, simple_returns
+from quantlab.dynamics import detect_period, logistic_fixed_points, simulate_logistic_map
+
+prices = pd.Series(
+    [100.0, 101.5, 99.8, 102.3, 103.1],
+    index=pd.bdate_range("2025-01-06", periods=5),
+)
+cumulative_returns(simple_returns(prices)).iloc[-1]  # ≈ 0.031 (3,1% no período)
+annualized_volatility(log_returns(prices))  # ≈ 0.282
+
+for point in logistic_fixed_points(2.5):
+    print(point.location, point.multiplier, point.stability)
+# 0.0 2.5 unstable
+# 0.6 -0.4999999999999999 stable    (o valor exato é 2 - r = -0.5; a diferença é arredondamento)
+
+orbit = simulate_logistic_map(r=3.5, x0=0.2, n_steps=22_000)[20_000:]
+detect_period(orbit)  # 4
+```
+
+Os valores nos comentários foram obtidos executando o código acima (os marcados com ≈ estão arredondados). A volatilidade anualizada de 4 retornos é só ilustração: uma amostra tão curta não estima nada com confiança.
 
 O que já vale para qualquer pessoa que clonar o repositório:
 
