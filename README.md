@@ -1,0 +1,1 @@
+# Plataforma_de_estudos_Sistemas_Dinamicos_e_financas
