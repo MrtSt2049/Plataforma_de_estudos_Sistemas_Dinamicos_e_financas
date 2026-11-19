@@ -1,4 +1,4 @@
-r"""Historical and annualized volatility of a return series.
+r"""Historical, annualized and rolling volatility of a return series.
 
 Volatility here is the sample standard deviation of returns,
 
@@ -28,9 +28,15 @@ import math
 from typing import Final
 
 import numpy as np
+import pandas as pd
+from numpy.lib.stride_tricks import sliding_window_view
 
-from quantlab._validation import validate_finite_real, validate_int, validate_series
-from quantlab.exceptions import DomainError
+from quantlab._validation import (
+    validate_int,
+    validate_positive_real,
+    validate_series,
+)
+from quantlab.exceptions import InsufficientDataError
 from quantlab.types import NumericSeries
 
 TRADING_DAYS_PER_YEAR: Final[int] = 252
@@ -129,7 +135,71 @@ def annualized_volatility(
     Under volatility clustering or autocorrelation it misstates the volatility of
     longer horizons.
     """
-    periods = validate_finite_real(periods_per_year, name="periods_per_year")
-    if periods <= 0.0:
-        raise DomainError(f"periods_per_year must be strictly positive, got {periods}.")
+    periods = validate_positive_real(periods_per_year, name="periods_per_year")
     return historical_volatility(returns, ddof=ddof) * math.sqrt(periods)
+
+
+def rolling_volatility(
+    returns: NumericSeries,
+    window: int,
+    *,
+    periods_per_year: float | None = None,
+    ddof: int = 1,
+) -> pd.Series[float]:
+    r"""Compute the volatility over a moving window of consecutive returns.
+
+    For each position :math:`t \ge w`, the result is the sample standard deviation
+    of :math:`x_{t-w+1}, \dots, x_t`, optionally multiplied by :math:`\sqrt{N}`.
+    It shows how dispersion changes over time, for example across volatility regimes.
+
+    Parameters
+    ----------
+    returns
+        Same requirements as in :func:`historical_volatility`, with at least
+        ``window`` observations.
+    window
+        Number of returns in each window, :math:`w`. Must be at least
+        ``max(2, ddof + 1)``.
+    periods_per_year
+        If given, annualize each value with :math:`\sqrt{N}`. If ``None`` (the
+        default), values are in the units of the input period.
+    ddof
+        Delta degrees of freedom, as in :func:`historical_volatility`.
+
+    Returns
+    -------
+    pandas.Series
+        float64 series of length ``len(returns) - window + 1``. Each value is
+        labelled with the *last* observation of its window. The first ``window - 1``
+        positions, which have no complete window, are dropped rather than filled
+        with NaN.
+
+    Raises
+    ------
+    TypeError, InputValidationError, DomainError
+        For the reasons listed in :func:`annualized_volatility`, or if ``window`` is
+        not an integer or is smaller than ``max(2, ddof + 1)``.
+    InsufficientDataError
+        If there are fewer than ``window`` observations.
+
+    Notes
+    -----
+    Each window is evaluated with the same two-pass algorithm as
+    :func:`historical_volatility`, through a strided view of the data. This costs
+    :math:`O(n w)` operations, which is negligible for daily data, and avoids the
+    drift that running-sum (online) updates accumulate over long series.
+    """
+    checked_ddof = validate_int(ddof, name="ddof", minimum=0)
+    width = validate_int(window, name="window", minimum=max(_MIN_OBSERVATIONS, checked_ddof + 1))
+    validated = validate_series(returns, name="returns", min_length=_MIN_OBSERVATIONS)
+    if len(validated) < width:
+        raise InsufficientDataError(
+            f"returns needs at least window={width} observations, got {len(validated)}."
+        )
+    windows = sliding_window_view(validated.to_numpy(), width)
+    volatility = np.std(windows, axis=1, ddof=checked_ddof)
+    if periods_per_year is not None:
+        volatility = volatility * math.sqrt(
+            validate_positive_real(periods_per_year, name="periods_per_year")
+        )
+    return pd.Series(volatility, index=validated.index[width - 1 :], name=validated.name)

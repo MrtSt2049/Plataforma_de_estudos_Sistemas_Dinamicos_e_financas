@@ -27,18 +27,11 @@ from __future__ import annotations
 import numpy as np
 import pandas as pd
 
-from quantlab._validation import require_at_least, require_strictly_positive, validate_series
+from quantlab._validation import require_at_least, validate_price_series, validate_series
 from quantlab.types import NumericSeries
 
-_MIN_PRICES = 2
 _MIN_RETURNS = 1
 _TOTAL_LOSS = -1.0
-
-
-def _validated_prices(prices: object) -> pd.Series[float]:
-    validated = validate_series(prices, name="prices", min_length=_MIN_PRICES)
-    require_strictly_positive(validated, name="prices")
-    return validated
 
 
 def simple_returns(prices: NumericSeries) -> pd.Series[float]:
@@ -80,7 +73,7 @@ def simple_returns(prices: NumericSeries) -> pd.Series[float]:
     exact (Sterbenz lemma), so small returns keep their full relative precision;
     forming the ratio first and then subtracting one would cancel leading digits.
     """
-    validated = _validated_prices(prices)
+    validated = validate_price_series(prices)
     values = validated.to_numpy()
     returns = np.diff(values) / values[:-1]
     return pd.Series(returns, index=validated.index[1:], name=validated.name)

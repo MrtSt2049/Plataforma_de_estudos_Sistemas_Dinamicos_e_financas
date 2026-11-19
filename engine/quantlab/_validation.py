@@ -82,7 +82,12 @@ def validate_series(series: object, *, name: str, min_length: int) -> pd.Series[
             f"{_describe_labels(series.index[infinite])}."
         )
 
-    index = series.index
+    _check_time_index(series.index, name=name)
+    return pd.Series(values, index=series.index, name=series.name, copy=False)
+
+
+def _check_time_index(index: pd.Index, *, name: str) -> None:
+    """Require unique index labels sorted in increasing (temporal) order."""
     if not index.is_unique:
         duplicated = index[index.duplicated()].unique()
         raise InputValidationError(
@@ -93,7 +98,67 @@ def validate_series(series: object, *, name: str, min_length: int) -> pd.Series[
             f"{name} must be sorted by its index in increasing (temporal) order."
         )
 
-    return pd.Series(values, index=index, name=series.name, copy=False)
+
+def validate_frame(frame: object, *, name: str, min_rows: int) -> pd.DataFrame:
+    """Check that ``frame`` is a clean numeric table of time series and return it as float64.
+
+    Each column is one variable (for example the returns of one asset) and each row
+    one observation time. The same rules as :func:`validate_series` apply to every
+    column, and column labels must be unique.
+
+    Returns
+    -------
+    pandas.DataFrame
+        A new float64 frame with the same index and columns. The input is not modified.
+
+    Raises
+    ------
+    TypeError
+        If ``frame`` is not a DataFrame or has a non-numeric or boolean column.
+    InputValidationError
+        If it has no columns, duplicated column labels, missing or infinite values,
+        or an index that is not unique and increasing.
+    InsufficientDataError
+        If it has fewer than ``min_rows`` rows.
+    """
+    if not isinstance(frame, pd.DataFrame):
+        raise TypeError(f"{name} must be a pandas DataFrame, got {type(frame).__name__}.")
+    if frame.shape[1] == 0:
+        raise InputValidationError(f"{name} must have at least one column.")
+    if not frame.columns.is_unique:
+        duplicated = frame.columns[frame.columns.duplicated()].unique()
+        raise InputValidationError(
+            f"{name} has duplicated column labels: {_describe_labels(duplicated)}."
+        )
+    for column, dtype in frame.dtypes.items():
+        if pd.api.types.is_bool_dtype(dtype) or not pd.api.types.is_numeric_dtype(dtype):
+            raise TypeError(f"{name} column {column!r} must be numeric, got {dtype}.")
+    if len(frame) < min_rows:
+        raise InsufficientDataError(f"{name} needs at least {min_rows} row(s), got {len(frame)}.")
+
+    values = frame.to_numpy(dtype=np.float64, na_value=np.nan)
+    for column_position, column in enumerate(frame.columns):
+        column_values = values[:, column_position]
+        if np.isnan(column_values).any():
+            missing = frame.index[np.isnan(column_values)]
+            raise InputValidationError(
+                f"{name} column {column!r} contains {len(missing)} missing value(s) at "
+                f"{_describe_labels(missing)}. Clean or align the data before calling."
+            )
+        if np.isinf(column_values).any():
+            raise InputValidationError(
+                f"{name} column {column!r} contains non-finite values at "
+                f"{_describe_labels(frame.index[np.isinf(column_values)])}."
+            )
+    _check_time_index(frame.index, name=name)
+    return pd.DataFrame(values, index=frame.index, columns=frame.columns, copy=False)
+
+
+def validate_price_series(prices: object, *, name: str = "prices") -> pd.Series[float]:
+    """Validate a price series: clean, at least two observations and strictly positive."""
+    validated = validate_series(prices, name=name, min_length=2)
+    require_strictly_positive(validated, name=name)
+    return validated
 
 
 def require_strictly_positive(series: pd.Series[float], *, name: str) -> None:
@@ -131,6 +196,42 @@ def validate_finite_real(value: object, *, name: str) -> float:
     as_float = float(value)
     if not math.isfinite(as_float):
         raise InputValidationError(f"{name} must be finite, got {as_float}.")
+    return as_float
+
+
+def validate_positive_real(value: object, *, name: str) -> float:
+    """Return ``value`` as a float after checking that it is finite and strictly positive.
+
+    Raises
+    ------
+    TypeError
+        If ``value`` is not a real number.
+    InputValidationError
+        If ``value`` is NaN or infinite.
+    DomainError
+        If ``value`` is zero or negative.
+    """
+    as_float = validate_finite_real(value, name=name)
+    if as_float <= 0.0:
+        raise DomainError(f"{name} must be strictly positive, got {as_float}.")
+    return as_float
+
+
+def validate_open_unit_interval(value: object, *, name: str) -> float:
+    """Return ``value`` as a float after checking that ``0 < value < 1``.
+
+    Raises
+    ------
+    TypeError
+        If ``value`` is not a real number.
+    InputValidationError
+        If ``value`` is NaN or infinite.
+    DomainError
+        If ``value`` is not strictly between 0 and 1.
+    """
+    as_float = validate_finite_real(value, name=name)
+    if not 0.0 < as_float < 1.0:
+        raise DomainError(f"{name} must lie strictly between 0 and 1, got {as_float}.")
     return as_float
 
 

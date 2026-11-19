@@ -11,6 +11,7 @@ from quantlab.analysis import (
     TRADING_DAYS_PER_YEAR,
     annualized_volatility,
     historical_volatility,
+    rolling_volatility,
 )
 from quantlab.exceptions import DomainError, InputValidationError, InsufficientDataError
 
@@ -141,3 +142,50 @@ def test_rejects_non_positive_periods_per_year(periods: float) -> None:
 def test_rejects_non_finite_periods_per_year(periods: float) -> None:
     with pytest.raises(InputValidationError, match="periods_per_year"):
         annualized_volatility(pd.Series(SAMPLE), periods_per_year=periods)
+
+
+# --- rolling_volatility --------------------------------------------------------------------------
+
+
+def test_rolling_volatility_matches_each_window(daily_prices: pd.Series[float]) -> None:
+    returns = daily_prices.pct_change().dropna()
+    window = 21
+    rolling = rolling_volatility(returns, window)
+    assert len(rolling) == len(returns) - window + 1
+    assert rolling.index.equals(returns.index[window - 1 :])
+    for position in (0, 100, len(rolling) - 1):
+        expected = historical_volatility(returns.iloc[position : position + window])
+        assert rolling.iloc[position] == pytest.approx(expected, rel=1e-14)
+
+
+def test_rolling_volatility_annualization(daily_prices: pd.Series[float]) -> None:
+    returns = daily_prices.pct_change().dropna()
+    np.testing.assert_allclose(
+        rolling_volatility(returns, 63, periods_per_year=252).to_numpy(),
+        rolling_volatility(returns, 63).to_numpy() * math.sqrt(252),
+        rtol=1e-15,
+    )
+
+
+def test_full_window_equals_historical_volatility() -> None:
+    returns = pd.Series(SAMPLE)
+    (only,) = rolling_volatility(returns, len(SAMPLE)).to_numpy()
+    assert only == pytest.approx(historical_volatility(returns), rel=1e-15)
+
+
+def test_rolling_volatility_detects_a_regime_change(rng: np.random.Generator) -> None:
+    calm = rng.normal(0.0, 0.005, size=250)
+    turbulent = rng.normal(0.0, 0.03, size=250)
+    rolling = rolling_volatility(pd.Series(np.concatenate([calm, turbulent])), 50)
+    assert rolling.iloc[150] < 0.01 < rolling.iloc[-1]
+
+
+@pytest.mark.parametrize("window", [0, 1])
+def test_rolling_volatility_rejects_windows_below_two(window: int) -> None:
+    with pytest.raises(InputValidationError, match="window"):
+        rolling_volatility(pd.Series(SAMPLE), window)
+
+
+def test_rolling_volatility_rejects_window_longer_than_data() -> None:
+    with pytest.raises(InsufficientDataError, match="window=7"):
+        rolling_volatility(pd.Series(SAMPLE[:6]), 7)
