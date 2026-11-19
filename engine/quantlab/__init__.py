@@ -10,8 +10,9 @@ Subpackages
 quantlab.analysis
     Returns and volatility of financial time series.
 quantlab.dynamics
-    Discrete dynamical systems: the logistic map, fixed-point stability,
-    periodic orbits and Lyapunov exponents.
+    Dynamical systems: the logistic map (fixed-point stability, periodic
+    orbits, Lyapunov exponents) and the Lorenz system (adaptive integration,
+    equilibria and their eigenvalues, the Hopf threshold).
 """
 
 from importlib.metadata import PackageNotFoundError, version

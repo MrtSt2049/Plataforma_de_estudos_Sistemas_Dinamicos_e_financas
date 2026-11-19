@@ -276,6 +276,47 @@ def validate_int(value: object, *, name: str, minimum: int) -> int:
     return as_int
 
 
+def validate_state_vector(
+    state: object, *, name: str, dimension: int | None
+) -> npt.NDArray[np.float64]:
+    """Return a finite float64 copy of ``state``, a point of a finite-dimensional space.
+
+    The dtype is checked *before* converting, so complex values are rejected instead of
+    silently losing their imaginary part, and booleans are not read as 0 and 1.
+
+    Parameters
+    ----------
+    state
+        The point to validate.
+    name
+        Name of the argument, used in error messages.
+    dimension
+        Required number of coordinates, or ``None`` to accept any non-empty
+        one-dimensional sequence.
+
+    Raises
+    ------
+    TypeError
+        If ``state`` does not hold real numbers (strings, booleans, complex, objects).
+    InputValidationError
+        If it is ragged, is not one-dimensional and non-empty, does not have
+        ``dimension`` coordinates, or contains NaN or infinite values.
+    """
+    expected = "(n,) with n >= 1" if dimension is None else f"({dimension},)"
+    try:
+        raw = np.asarray(state)
+    except ValueError as error:
+        raise InputValidationError(f"{name} must have shape {expected}: {error}") from error
+    if raw.dtype.kind not in "iuf":
+        raise TypeError(f"{name} must contain real numbers, got dtype {raw.dtype}.")
+    if raw.ndim != 1 or raw.size == 0 or (dimension is not None and raw.size != dimension):
+        raise InputValidationError(f"{name} must have shape {expected}, got {raw.shape}.")
+    values = raw.astype(np.float64)
+    if not np.isfinite(values).all():
+        raise InputValidationError(f"{name} contains NaN or infinite values.")
+    return values
+
+
 def validate_orbit(orbit: npt.ArrayLike, *, name: str, min_length: int) -> npt.NDArray[np.float64]:
     """Return a one-dimensional, finite float64 copy of ``orbit``.
 
