@@ -67,7 +67,7 @@ flowchart TD
 | **Motor Científico** | `quantlab.dynamics` (Sistema contínuo de Lorenz, integração adaptativa DOP853, estabilidade de equilíbrios de fluxos) | ✅ Concluído | 100% Cobertura (135 testes dedicados; ADR 0004) |
 | **Motor Científico** | `quantlab.research` (Research Core: sementes, experimentos, auditoria) | ⏳ **Pendente** | Falta implementar módulo e testes |
 | **Motor Científico** | Provedor de Dados Online & Cache DuckDB/Parquet | ⏳ **Pendente** | Proposta aberta no ADR 0002 |
-| **Motor Científico** | `quantlab.visualization` (Atrator de Lorenz 3D, Diagrama de Bifurcação) | ⏳ **Pendente** | Falta implementar módulo |
+| **Motor Científico** | `quantlab.visualization` (Atrator de Lorenz 3D, Diagrama de Bifurcação) | ✅ Concluído | 100% Cobertura (37 testes dedicados: 19 dos gráficos e 18 do diagrama no motor) |
 | **Supabase** | Migrações SQL e Esquema Relacional | ⏳ **Pendente** | Estruturação de `supabase/migrations/` |
 | **Supabase** | Políticas de RLS e Buckets de Storage | ⏳ **Pendente** | RLS e configuração de storage |
 | **Backend Django** | Setup do Projeto e Configuração Modular | ⏳ **Pendente** | Diretório `backend/` e settings |
@@ -109,9 +109,9 @@ flowchart TD
 #### 1.3. Visualizações de Sistemas Dinâmicos (`engine/quantlab/visualization/dynamics.py`)
 - Trajetória 3D interativa do Atrator de Lorenz via `plotly.graph_objects.Scatter3d` com o tema visual do QuantLab.
 - Diagrama de bifurcação do mapa logístico com densidade de pontos no intervalo caótico.
-- **Entregáveis:**
-  - Código: `engine/quantlab/visualization/dynamics.py`
-  - Testes: `tests/visualization/test_dynamics_charts.py`
+- **Entregáveis (✅ concluídos):**
+  - Código: `engine/quantlab/visualization/dynamics.py`, com o cálculo do diagrama no motor (`logistic_bifurcation_diagram` em `engine/quantlab/dynamics/logistic.py`)
+  - Testes: `tests/visualization/test_dynamics_charts.py`, `tests/dynamics/test_logistic_bifurcation.py`
 
 ---
 

@@ -35,7 +35,7 @@ Implementado no motor até agora:
 | `quantlab.analysis` | Retornos simples, log e acumulados. Volatilidade histórica, anualizada e móvel. Sharpe, drawdown máximo, VaR e CVaR históricos, covariância, correlação, médias móveis SMA e EMA | [Retornos e volatilidade](docs/math/retornos-e-volatilidade.md), [Desempenho, risco e dependência](docs/math/desempenho-e-risco.md) |
 | `quantlab.data` | Esquema OHLCV com metadados de proveniência, interface de provedores, provedor de CSV local, padronização, verificação de integridade e limpeza auditada | [ADR 0002](docs/adr/0002-camada-de-dados-de-mercado.md) |
 | `quantlab.dynamics` | Mapa logístico, estabilidade de pontos fixos, detecção de período, expoente de Lyapunov. Sistema de Lorenz com integração adaptativa (SciPy), equilíbrios, autovalores e limiar de Hopf | [Mapa logístico](docs/math/mapa-logistico.md), [Sistema de Lorenz](docs/math/sistema-lorenz.md), [ADR 0004](docs/adr/0004-integracao-numerica.md) |
-| `quantlab.visualization` | Gráficos Plotly na identidade visual: preço, patrimônio com drawdown, distribuição com VaR/CVaR, mapa de correlação e volatilidade móvel (extra opcional `plot`) | [ADR 0003](docs/adr/0003-visualizacao-no-motor.md) |
+| `quantlab.visualization` | Gráficos Plotly na identidade visual: preço, patrimônio com drawdown, distribuição com VaR/CVaR, mapa de correlação e volatilidade móvel. Atrator de Lorenz em 3D com os equilíbrios e diagrama de bifurcação do mapa logístico (extra opcional `plot`) | [ADR 0003](docs/adr/0003-visualizacao-no-motor.md) |
 
 Vou atualizar esta tabela conforme as fases forem saindo do papel. Nenhum item é marcado como pronto antes de ter código e testes rodando.
 
@@ -279,6 +279,19 @@ from quantlab.visualization import plot_equity_and_drawdown, plot_return_distrib
 
 plot_equity_and_drawdown(prices["A"], demo=True).show()
 plot_return_distribution(returns["A"], confidence=0.95, demo=True).show()
+```
+
+E os sistemas dinâmicos (os gráficos desenham o que o motor calculou, sem refazer a conta):
+
+```python
+import numpy as np
+
+from quantlab.dynamics import CANONICAL_PARAMETERS, simulate_lorenz
+from quantlab.visualization import plot_logistic_bifurcation, plot_lorenz_attractor
+
+trajectory = simulate_lorenz([1.0, 1.0, 1.0], n_steps=10_000, dt=0.01)
+plot_lorenz_attractor(trajectory, parameters=CANONICAL_PARAMETERS, transient_time=5.0).show()
+plot_logistic_bifurcation(np.linspace(2.5, 4.0, 1_200), x0=0.2).show()
 ```
 
 Com dados reais, o caminho passa pela camada de dados, que padroniza, verifica e limpa a série com políticas explícitas:
