@@ -84,12 +84,27 @@ def _axis() -> dict[str, object]:
     }
 
 
+def _scene_axis() -> dict[str, object]:
+    """Axis of a 3D scene: the same hairline grid and text tokens as the 2D axes."""
+    return {
+        "backgroundcolor": PANEL,
+        "showbackground": True,
+        "gridcolor": BORDER,
+        "gridwidth": GRID_WIDTH,
+        "linecolor": BORDER,
+        "zerolinecolor": BORDER,
+        "tickfont": {"family": FONT_MONO, "color": TEXT_SECONDARY, "size": 10},
+        "title": {"font": {"family": FONT_SANS, "color": TEXT_SECONDARY, "size": 11}},
+        "showspikes": False,
+    }
+
+
 def quantlab_template() -> go.layout.Template:
     """Build the dark Plotly template of the QuantLab interface.
 
     Hairline solid grids one step off the surface, text in the text tokens, the
     interface fonts, a unified hover crosshair, and the analytic colour as the
-    first series colour.
+    first series colour. 3D scenes use the same grid and text tokens.
     """
     return go.layout.Template(
         layout={
@@ -107,6 +122,12 @@ def quantlab_template() -> go.layout.Template:
             "colorway": [ANALYTIC],
             "xaxis": _axis(),
             "yaxis": _axis(),
+            "scene": {
+                "bgcolor": PANEL,
+                "xaxis": _scene_axis(),
+                "yaxis": _scene_axis(),
+                "zaxis": _scene_axis(),
+            },
             "hovermode": "x unified",
             "hoverlabel": {
                 "bgcolor": SURFACE,
