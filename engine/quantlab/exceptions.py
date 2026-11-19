@@ -34,6 +34,22 @@ class DomainError(InputValidationError):
     """
 
 
+class DataIntegrityError(InputValidationError):
+    """A data set violates integrity rules (for example high below low, or negative volume)."""
+
+
+class DataSourceError(QuantLabError):
+    """A market-data source failed: unreadable file, malformed content, unavailable service.
+
+    This is an infrastructure error, distinct from invalid input: retrying or fixing
+    the source may solve it without changing the request.
+    """
+
+
+class SymbolNotFoundError(DataSourceError):
+    """The requested symbol is not available from the data source."""
+
+
 class ComputationError(QuantLabError):
     """Valid input for which the requested quantity is undefined or cannot be computed.
 
