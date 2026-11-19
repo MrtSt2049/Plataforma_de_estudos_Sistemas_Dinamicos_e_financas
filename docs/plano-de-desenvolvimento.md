@@ -64,7 +64,7 @@ flowchart TD
 | **Motor Científico** | `quantlab.data` (Schema OHLCV, CsvProvider, Limpeza auditada) | ✅ Concluído | 100% Cobertura (55 testes dedicados) |
 | **Motor Científico** | `quantlab.dynamics` (Mapa logístico, órbitas, estabilidade, Lyapunov) | ✅ Concluído | 100% Cobertura (76 testes dedicados) |
 | **Motor Científico** | `quantlab.visualization` (Gráficos financeiros com tokens e Plotly) | ✅ Concluído | 100% Cobertura (20 testes dedicados) |
-| **Motor Científico** | `quantlab.dynamics` (Sistema contínuo de Lorenz, integração RK45) | ⏳ **Pendente** | Falta implementar módulo e testes |
+| **Motor Científico** | `quantlab.dynamics` (Sistema contínuo de Lorenz, integração adaptativa DOP853, estabilidade de equilíbrios de fluxos) | ✅ Concluído | 100% Cobertura (135 testes dedicados; ADR 0004) |
 | **Motor Científico** | `quantlab.research` (Research Core: sementes, experimentos, auditoria) | ⏳ **Pendente** | Falta implementar módulo e testes |
 | **Motor Científico** | Provedor de Dados Online & Cache DuckDB/Parquet | ⏳ **Pendente** | Proposta aberta no ADR 0002 |
 | **Motor Científico** | `quantlab.visualization` (Atrator de Lorenz 3D, Diagrama de Bifurcação) | ⏳ **Pendente** | Falta implementar módulo |
@@ -89,11 +89,11 @@ flowchart TD
 - **Equações diferenciais governantes:**
   $$\frac{dx}{dt} = \sigma(y - x), \quad \frac{dy}{dt} = x(\rho - z) - y, \quad \frac{dz}{dt} = xy - \beta z$$
 - **Parâmetros canônicos:** $\sigma = 10$, $\beta = 8/3$, $\rho = 28$.
-- **Integração numérica:** `scipy.integrate.solve_ivp` com método `RK45` ou `Radau` para controle estrito de erro local e absoluto.
+- **Integração numérica:** `scipy.integrate.solve_ivp` com controle adaptativo de erro local. Decisão final ([ADR 0004](adr/0004-integracao-numerica.md)): `DOP853` por padrão, com `RK45` e `Radau` disponíveis.
 - **Estabilidade:** Cálculo dos pontos fixos (origem e os dois centros $C^{\pm} = (\pm \sqrt{\beta(\rho-1)}, \pm \sqrt{\beta(\rho-1)}, \rho-1)$ para $\rho > 1$) e análise dos autovalores da matriz jacobiana.
-- **Entregáveis:**
-  - Código: `engine/quantlab/dynamics/lorenz.py`
-  - Testes: `tests/dynamics/test_lorenz.py`
+- **Entregáveis (✅ concluídos):**
+  - Código: `engine/quantlab/dynamics/lorenz.py`, com o integrador genérico em `engine/quantlab/dynamics/integration.py` e a estabilidade de fluxos em `engine/quantlab/dynamics/stability.py`
+  - Testes: `tests/dynamics/test_lorenz.py`, `tests/dynamics/test_integration.py`, `tests/dynamics/test_flow_stability.py`
   - Documentação matemática: `docs/math/sistema-lorenz.md`
 
 #### 1.2. Research Core (`engine/quantlab/research/`)

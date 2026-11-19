@@ -24,7 +24,7 @@ O motor científico está em construção. A análise quantitativa da 0.1 está 
 | Arquitetura e stack | Definidas ([ADR 0001](docs/adr/0001-empacotamento-do-motor-e-ambiente.md)) |
 | Regras de desenvolvimento | Escritas (`.agents/rules/`) |
 | Design da interface | Primeira versão em `Assets/` |
-| Fase 1, fundação científica | Em andamento: ambiente, validação, retornos, volatilidade e mapa logístico prontos. Faltam o sistema de Lorenz e o Research Core |
+| Fase 1, fundação científica | Em andamento: ambiente, validação, retornos, volatilidade, mapa logístico e sistema de Lorenz prontos. Falta o Research Core |
 | Fase 2, análise quantitativa | Em andamento: indicadores, risco, correlação, camada de dados e gráficos prontos. **Falta escolher a fonte online** ([ADR 0002](docs/adr/0002-camada-de-dados-de-mercado.md)) |
 | Backend, banco e frontend | Planejados, ainda sem código |
 
@@ -34,7 +34,7 @@ Implementado no motor até agora:
 |---|---|---|
 | `quantlab.analysis` | Retornos simples, log e acumulados. Volatilidade histórica, anualizada e móvel. Sharpe, drawdown máximo, VaR e CVaR históricos, covariância, correlação, médias móveis SMA e EMA | [Retornos e volatilidade](docs/math/retornos-e-volatilidade.md), [Desempenho, risco e dependência](docs/math/desempenho-e-risco.md) |
 | `quantlab.data` | Esquema OHLCV com metadados de proveniência, interface de provedores, provedor de CSV local, padronização, verificação de integridade e limpeza auditada | [ADR 0002](docs/adr/0002-camada-de-dados-de-mercado.md) |
-| `quantlab.dynamics` | Mapa logístico, estabilidade de pontos fixos, detecção de período, expoente de Lyapunov | [Mapa logístico](docs/math/mapa-logistico.md) |
+| `quantlab.dynamics` | Mapa logístico, estabilidade de pontos fixos, detecção de período, expoente de Lyapunov. Sistema de Lorenz com integração adaptativa (SciPy), equilíbrios, autovalores e limiar de Hopf | [Mapa logístico](docs/math/mapa-logistico.md), [Sistema de Lorenz](docs/math/sistema-lorenz.md), [ADR 0004](docs/adr/0004-integracao-numerica.md) |
 | `quantlab.visualization` | Gráficos Plotly na identidade visual: preço, patrimônio com drawdown, distribuição com VaR/CVaR, mapa de correlação e volatilidade móvel (extra opcional `plot`) | [ADR 0003](docs/adr/0003-visualizacao-no-motor.md) |
 
 Vou atualizar esta tabela conforme as fases forem saindo do papel. Nenhum item é marcado como pronto antes de ter código e testes rodando.
@@ -211,6 +211,32 @@ detect_period(orbit)  # 4
 ```
 
 Os valores nos comentários foram obtidos executando o código acima (os marcados com ≈ estão arredondados). A volatilidade anualizada de 4 retornos é só ilustração: uma amostra tão curta não estima nada com confiança.
+
+O sistema de Lorenz, nos parâmetros canônicos ($\sigma = 10$, $\rho = 28$, $\beta = 8/3$):
+
+```python
+from quantlab.dynamics import (
+    LorenzParameters,
+    lorenz_fixed_points,
+    lorenz_hopf_rho,
+    simulate_lorenz,
+)
+
+for point in lorenz_fixed_points():
+    print(point.location, point.stability)
+# (0.0, 0.0, 0.0) unstable
+# (8.48528137423857, 8.48528137423857, 27.0) unstable
+# (-8.48528137423857, -8.48528137423857, 27.0) unstable
+
+lorenz_hopf_rho()  # ≈ 24.7368 (= 470/19): acima disso C+ e C- perdem a estabilidade
+print(lorenz_fixed_points(LorenzParameters(rho=10.0))[1].stability)  # stable
+
+trajectory = simulate_lorenz([1.0, 1.0, 1.0], n_steps=10_000, dt=0.01)  # t de 0 a 100
+trajectory.states.shape  # (10001, 3)
+trajectory.method, trajectory.n_evaluations  # ('DOP853', 74840)
+```
+
+Em regime caótico, o estado num instante distante (por exemplo `trajectory.states[-1]`, em $t = 100$) não é uma previsão: uma diferença de $10^{-9}$ na condição inicial vira uma separação de 6,2 em $t = 40$, da ordem do próprio atrator. A [documentação do sistema](docs/math/sistema-lorenz.md) mostra a medição.
 
 Risco e desempenho, com **dados sintéticos** (semente fixa, sem significado de mercado):
 
