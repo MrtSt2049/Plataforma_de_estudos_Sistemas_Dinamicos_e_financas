@@ -31,7 +31,9 @@ def _describe_labels(labels: pd.Index) -> str:
     return f"[{shown}]"
 
 
-def validate_series(series: object, *, name: str, min_length: int) -> pd.Series[float]:
+def validate_series(
+    series: object, *, name: str, min_length: int, allow_missing: bool = False
+) -> pd.Series[float]:
     """Check that ``series`` is a clean numeric time series and return it as float64.
 
     Parameters
@@ -42,6 +44,9 @@ def validate_series(series: object, *, name: str, min_length: int) -> pd.Series[
         Name of the argument, used in error messages.
     min_length
         Minimum number of observations required.
+    allow_missing
+        Accept NaN (kept as NaN in the result). Only for code that displays gaps,
+        such as charts; calculations must keep the default ``False``.
 
     Returns
     -------
@@ -70,7 +75,7 @@ def validate_series(series: object, *, name: str, min_length: int) -> pd.Series[
     values = series.to_numpy(dtype=np.float64, na_value=np.nan)
 
     missing = np.isnan(values)
-    if missing.any():
+    if missing.any() and not allow_missing:
         raise InputValidationError(
             f"{name} contains {int(missing.sum())} missing value(s) at "
             f"{_describe_labels(series.index[missing])}. Clean the data before calling."
