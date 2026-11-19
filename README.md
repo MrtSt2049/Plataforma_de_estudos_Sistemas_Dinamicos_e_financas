@@ -2,7 +2,7 @@
 
 **Quantitative Finance & Computational Dynamics**
 
-![Status](https://img.shields.io/badge/status-fase%201%20em%20andamento-yellow)
+![Status](https://img.shields.io/badge/status-fase%202%20em%20andamento-yellow)
 ![Python](https://img.shields.io/badge/python-3.12%2B-blue)
 
 Um laboratório para estudar finanças quantitativas e sistemas dinâmicos no mesmo código. A ideia é ter um lugar onde dá para formular uma hipótese, rodar um experimento e repetir o resultado meses depois, com os mesmos dados, parâmetros e sementes aleatórias.
@@ -17,22 +17,25 @@ Uma pergunta que serve de exemplo para o tipo de pesquisa que quero fazer aqui: 
 
 ## Estado atual
 
-O motor científico começou a ser construído. O ambiente, a estrutura do pacote e os primeiros algoritmos existem e têm testes rodando.
+O motor científico está em construção. A análise quantitativa da 0.1 está implementada e testada. Falta escolher a fonte de dados online.
 
 | O que | Situação |
 |---|---|
 | Arquitetura e stack | Definidas ([ADR 0001](docs/adr/0001-empacotamento-do-motor-e-ambiente.md)) |
 | Regras de desenvolvimento | Escritas (`.agents/rules/`) |
 | Design da interface | Primeira versão em `Assets/` |
-| Motor científico (Fase 1) | Em andamento: ambiente com `uv`, validação de entradas, retornos, volatilidade e mapa logístico, todos com testes |
+| Fase 1, fundação científica | Em andamento: ambiente, validação, retornos, volatilidade e mapa logístico prontos. Faltam o sistema de Lorenz e o Research Core |
+| Fase 2, análise quantitativa | Em andamento: indicadores, risco, correlação, camada de dados e gráficos prontos. **Falta escolher a fonte online** ([ADR 0002](docs/adr/0002-camada-de-dados-de-mercado.md)) |
 | Backend, banco e frontend | Planejados, ainda sem código |
 
 Implementado no motor até agora:
 
-| Módulo | Funções | Documentação matemática |
+| Módulo | Conteúdo | Documentação |
 |---|---|---|
-| `quantlab.analysis` | `simple_returns`, `log_returns`, `cumulative_returns`, `historical_volatility`, `annualized_volatility` | [Retornos e volatilidade](docs/math/retornos-e-volatilidade.md) |
-| `quantlab.dynamics` | `logistic_map`, `simulate_logistic_map`, `logistic_fixed_points`, `logistic_lyapunov_exponent`, `classify_map_fixed_point`, `detect_period` | [Mapa logístico](docs/math/mapa-logistico.md) |
+| `quantlab.analysis` | Retornos simples, log e acumulados. Volatilidade histórica, anualizada e móvel. Sharpe, drawdown máximo, VaR e CVaR históricos, covariância, correlação, médias móveis SMA e EMA | [Retornos e volatilidade](docs/math/retornos-e-volatilidade.md), [Desempenho, risco e dependência](docs/math/desempenho-e-risco.md) |
+| `quantlab.data` | Esquema OHLCV com metadados de proveniência, interface de provedores, provedor de CSV local, padronização, verificação de integridade e limpeza auditada | [ADR 0002](docs/adr/0002-camada-de-dados-de-mercado.md) |
+| `quantlab.dynamics` | Mapa logístico, estabilidade de pontos fixos, detecção de período, expoente de Lyapunov | [Mapa logístico](docs/math/mapa-logistico.md) |
+| `quantlab.visualization` | Gráficos Plotly na identidade visual: preço, patrimônio com drawdown, distribuição com VaR/CVaR, mapa de correlação e volatilidade móvel (extra opcional `plot`) | [ADR 0003](docs/adr/0003-visualizacao-no-motor.md) |
 
 Vou atualizar esta tabela conforme as fases forem saindo do papel. Nenhum item é marcado como pronto antes de ter código e testes rodando.
 
@@ -120,7 +123,7 @@ A fonte dos dados de mercado para a 0.1 ainda está em aberto. Quando eu escolhe
 
 ## Estrutura do repositório
 
-Esta é a estrutura prevista. Hoje existem `engine/quantlab/` (com `analysis/` e `dynamics/`), `tests/`, `docs/`, `Assets/` e `.agents/`. Os outros diretórios serão criados quando a fase correspondente começar.
+Esta é a estrutura prevista. Hoje existem `engine/quantlab/` (com `analysis/`, `data/`, `dynamics/` e `visualization/`), `tests/`, `docs/`, `Assets/` e `.agents/`. Os outros diretórios serão criados quando a fase correspondente começar.
 
 ```
 quantlab/
@@ -208,6 +211,62 @@ detect_period(orbit)  # 4
 ```
 
 Os valores nos comentários foram obtidos executando o código acima (os marcados com ≈ estão arredondados). A volatilidade anualizada de 4 retornos é só ilustração: uma amostra tão curta não estima nada com confiança.
+
+Risco e desempenho, com **dados sintéticos** (semente fixa, sem significado de mercado):
+
+```python
+import numpy as np
+import pandas as pd
+
+from quantlab.analysis import (
+    correlation_matrix,
+    historical_cvar,
+    historical_var,
+    max_drawdown,
+    periodic_rate_from_annual,
+    sharpe_ratio,
+    simple_returns,
+)
+
+rng = np.random.default_rng(7)
+dates = pd.bdate_range("2024-01-01", periods=504)
+prices = pd.DataFrame(
+    100 * np.exp(np.cumsum(rng.normal(0.0004, 0.012, size=(504, 2)), axis=0)),
+    index=dates,
+    columns=["A", "B"],
+)
+returns = prices.apply(simple_returns)
+
+rf = periodic_rate_from_annual(0.1065)  # 10,65% a.a. -> taxa por pregão
+sharpe_ratio(returns["A"], risk_free_rate=rf)  # ≈ -0.072
+historical_var(returns["A"], confidence=0.95)  # ≈ 0.0192 (perda de 1,92% em um dia)
+historical_cvar(returns["A"], confidence=0.95)  # ≈ 0.0227
+max_drawdown(prices["A"])
+# value ≈ -0.207, pico 2024-01-01, vale 2024-08-21, recuperação 2025-09-23
+correlation_matrix(returns).loc["A", "B"]  # ≈ 0.04
+```
+
+Os mesmos números viram gráficos com `quantlab.visualization` (requer `uv sync --extra plot`, já incluído no ambiente de desenvolvimento):
+
+```python
+from quantlab.visualization import plot_equity_and_drawdown, plot_return_distribution
+
+plot_equity_and_drawdown(prices["A"], demo=True).show()
+plot_return_distribution(returns["A"], confidence=0.95, demo=True).show()
+```
+
+Com dados reais, o caminho passa pela camada de dados, que padroniza, verifica e limpa a série com políticas explícitas:
+
+```python
+from quantlab.data import CsvPriceProvider, check_ohlcv_integrity, clean_ohlcv
+
+provider = CsvPriceProvider("data/raw", adjusted=True, currency="BRL")  # um CSV por ativo
+history = provider.fetch("PETR4.SA")
+check_ohlcv_integrity(history.data, max_abs_log_return=0.4).raise_if_invalid()
+cleaned = clean_ohlcv(history.data, duplicates="last", missing="drop")
+returns = simple_returns(cleaned.data["close"])
+# cleaned.report registra o que foi removido ou preenchido; guarde-o junto do experimento.
+```
 
 O que já vale para qualquer pessoa que clonar o repositório:
 

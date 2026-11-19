@@ -68,5 +68,5 @@ As funções não limpam dados: não removem ausentes, não ordenam e não corta
 
 - A anualização pela raiz do tempo falha sob agrupamento de volatilidade (clusters) e autocorrelação, comuns em mercados reais. O número anualizado é uma convenção para comparar ativos, não uma previsão.
 - Os 252 pregões por ano são uma convenção. O calendário real varia por mercado e por ano. Para dados semanais ou mensais, passe `periods_per_year=52` ou `12`.
-- A volatilidade histórica de amostra inteira trata todo o período como um único regime. Volatilidade móvel e modelos condicionais (GARCH) ficam para fases seguintes.
+- A volatilidade histórica de amostra inteira trata todo o período como um único regime. Para acompanhar mudanças de regime, use `rolling_volatility` (descrita em [Desempenho, risco e dependência](desempenho-e-risco.md#indicadores)). Modelos condicionais, como o GARCH, ficam para fases seguintes.
 - Os retornos não consideram custos de transação, impostos ou câmbio.
