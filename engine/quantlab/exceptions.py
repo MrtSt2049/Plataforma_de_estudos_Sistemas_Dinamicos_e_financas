@@ -32,3 +32,11 @@ class DomainError(InputValidationError):
     Examples: a non-positive price passed to a logarithm, a logistic-map
     parameter outside ``[0, 4]``.
     """
+
+
+class ComputationError(QuantLabError):
+    """Valid input for which the requested quantity is undefined or cannot be computed.
+
+    Example: the Sharpe ratio of returns whose dispersion is zero, or numerically
+    indistinguishable from zero, which would divide by zero.
+    """
