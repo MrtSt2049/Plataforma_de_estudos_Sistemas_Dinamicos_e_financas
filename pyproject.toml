@@ -1,0 +1,82 @@
+[project]
+name = "quantlab"
+version = "0.1.0.dev0"
+description = "Scientific engine for quantitative finance and computational dynamics."
+readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
+requires-python = ">=3.12"
+dependencies = [
+    "numpy>=2.1",
+    "pandas>=2.2",
+]
+
+[dependency-groups]
+dev = [
+    "mypy>=1.13",
+    "pandas-stubs>=2.2",
+    "pytest>=8.3",
+    "pytest-cov>=6.0",
+    "ruff>=0.8",
+]
+
+[build-system]
+requires = ["hatchling>=1.26"]
+build-backend = "hatchling.build"
+
+# The engine lives in engine/quantlab (see docs/adr/0001). The import name stays `quantlab`.
+[tool.hatch.build.targets.wheel]
+packages = ["engine/quantlab"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+src = ["engine", "tests"]
+# Vendored agent skills and design assets are not project code.
+extend-exclude = [".agents", "Assets"]
+
+[tool.ruff.lint]
+select = [
+    "E",       # pycodestyle errors
+    "W",       # pycodestyle warnings
+    "F",       # pyflakes
+    "I",       # isort
+    "B",       # flake8-bugbear
+    "UP",      # pyupgrade
+    "N",       # pep8-naming
+    "SIM",     # flake8-simplify
+    "C4",      # flake8-comprehensions
+    "NPY",     # NumPy-specific rules
+    "PT",      # flake8-pytest-style
+    "RUF",     # Ruff-specific rules
+    "D",       # pydocstyle (RULE 011)
+    "PLR2004", # magic numbers (RULE 009)
+]
+
+[tool.ruff.lint.pydocstyle]
+convention = "numpy"
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["D", "PLR2004"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+files = ["engine/quantlab", "tests"]
+mypy_path = "engine"
+warn_unreachable = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = ["-ra", "--strict-markers", "--strict-config", "--import-mode=importlib"]
+# Numerical warnings (overflow, invalid value, division by zero) must never pass silently.
+filterwarnings = ["error"]
+xfail_strict = true
+
+[tool.coverage.run]
+source = ["quantlab"]
+branch = true
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = false
