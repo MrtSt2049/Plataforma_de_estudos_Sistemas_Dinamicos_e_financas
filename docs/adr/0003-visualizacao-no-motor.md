@@ -56,3 +56,13 @@ Consequências da validação:
 - Quem usa só o núcleo não instala o Plotly. Os gráficos exigem `uv sync --extra plot`. No ambiente de desenvolvimento, o Plotly já vem no grupo `dev`.
 - O mypy ignora a ausência de tipos apenas para `plotly.*`.
 - A exportação para PNG exige o `kaleido`, que não é dependência do projeto. As imagens usadas na revisão visual foram geradas com `uv run --with kaleido`.
+
+## Atualização — gráficos de sistemas dinâmicos (2026-11-19)
+
+O módulo `quantlab.visualization.dynamics` aplica a mesma decisão aos sistemas dinâmicos:
+
+- `plot_lorenz_attractor` desenha uma trajetória já calculada por `simulate_lorenz`, sem integrar nada. O subtítulo registra o método, a tolerância e o intervalo de tempo da própria trajetória. Os parâmetros só aparecem se forem informados, e nesse caso os equilíbrios de `lorenz_fixed_points` são marcados com a sua estabilidade.
+- `plot_logistic_bifurcation` desenha as amostras de `logistic_bifurcation_diagram`. Usa `Scattergl` com pontos de 2 px e opacidade 0,35, para mostrar a densidade das faixas caóticas com centenas de milhares de pontos.
+- As séries de dinâmica usam só o roxo científico (`SCIENCE`). O azul analítico nunca aparece no mesmo gráfico, como exige a validação de cores acima, e os testes verificam isso.
+- O template ganhou eixos de cena 3D com os mesmos tokens de grade e texto dos eixos 2D. A câmera padrão do Lorenz mostra as duas asas e os equilíbrios $C^\pm$ no centro delas.
+- Um diagrama com 1 200 valores de $r$ e 250 amostras cada (300 mil pontos) gera um JSON de cerca de 7,4 MB. É aceitável em notebook. Para o frontend (Fase 5), o diagrama deve ser enviado agregado, por exemplo como histograma 2D, e não como pontos.

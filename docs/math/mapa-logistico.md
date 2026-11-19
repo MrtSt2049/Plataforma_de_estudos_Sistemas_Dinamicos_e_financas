@@ -1,6 +1,6 @@
 # Mapa logístico
 
-Implementação: [`quantlab.dynamics.logistic`](../../engine/quantlab/dynamics/logistic.py), [`quantlab.dynamics.stability`](../../engine/quantlab/dynamics/stability.py) e [`quantlab.dynamics.orbits`](../../engine/quantlab/dynamics/orbits.py). Testes: [`tests/dynamics/`](../../tests/dynamics/).
+Implementação: [`quantlab.dynamics.logistic`](../../engine/quantlab/dynamics/logistic.py), [`quantlab.dynamics.stability`](../../engine/quantlab/dynamics/stability.py) e [`quantlab.dynamics.orbits`](../../engine/quantlab/dynamics/orbits.py). Gráfico: [`quantlab.visualization.dynamics`](../../engine/quantlab/visualization/dynamics.py). Testes: [`tests/dynamics/`](../../tests/dynamics/).
 
 ## Definição
 
@@ -50,6 +50,16 @@ A sequência de bifurcações $r_1 = 3$, $r_2 = 1 + \sqrt 6$, $r_3 \approx 3{,}5
 | 3,555 | 8 | após $r_3 \approx 3{,}5441$ |
 | 3,835 | 3 | janela de período 3 |
 | 3,9 e 4,0 | nenhum até 64 | região caótica |
+
+## Diagrama de bifurcação
+
+`logistic_bifurcation_diagram(r_values, x0, n_transient, n_samples)` itera o mapa para cada $r_i$ a partir do mesmo $x_0$, descarta os primeiros $T$ estados e guarda os $N$ seguintes, $x_T, \dots, x_{T+N-1}$. Desenhar essas amostras contra $r$ dá o diagrama de bifurcação: um ponto onde a órbita converge para um ponto fixo, $p$ pontos num $p$-ciclo e uma faixa preenchida onde ela é caótica.
+
+A recorrência é sequencial no tempo, mas independente entre valores de $r$. Por isso todos os $r_i$ avançam juntos, um passo vetorizado por vez (RULE 015). Cada linha do resultado é idêntica, bit a bit, à órbita de `simulate_logistic_map` com o mesmo $r$, e os testes verificam essa igualdade. Também verificam o valor único $1 - 1/r$ no regime de ponto fixo, os dois valores analíticos do 2-ciclo em $r = 3{,}2$ e, em $r = 4$, amostras espalhadas por todo o intervalo $[0, 1]$.
+
+`quantlab.visualization.plot_logistic_bifurcation` desenha o diagrama com pontos pequenos e translúcidos, para que a densidade das faixas caóticas apareça. Linhas pontilhadas marcam os valores exatos $r = 3$, $1 + \sqrt 6$ e $1 + \sqrt 8$.
+
+Limitações: perto de uma bifurcação a convergência é lenta, e um transiente curto deixa pontos ainda a caminho do atrator, o que borra o diagrama nessas regiões. Uma faixa que parece caótica na figura não prova caos. Para isso serve o expoente de Lyapunov.
 
 ## Expoente de Lyapunov
 
