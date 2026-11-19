@@ -28,6 +28,7 @@ from quantlab.analysis.risk import historical_cvar, historical_var
 from quantlab.analysis.volatility import TRADING_DAYS_PER_YEAR, rolling_volatility
 from quantlab.exceptions import DomainError
 from quantlab.types import NumericSeries
+from quantlab.visualization._layout import add_demo_badge, titled_figure
 from quantlab.visualization.theme import (
     ANALYTIC,
     AREA_OPACITY,
@@ -39,7 +40,6 @@ from quantlab.visualization.theme import (
     PANEL,
     TEXT,
     TEXT_SECONDARY,
-    WARN,
     quantlab_template,
     with_opacity,
 )
@@ -58,8 +58,6 @@ _SRGB_LINEAR_SLOPE = 12.92
 _SRGB_OFFSET = 0.055
 _SRGB_GAMMA = 2.4
 _LUMA_RED, _LUMA_GREEN, _LUMA_BLUE = 0.2126, 0.7152, 0.0722
-_DEMO_BADGE_BACKGROUND = "#2a2112"
-_DEMO_BADGE_BORDER = "#5a4318"
 
 
 # --- shared helpers ------------------------------------------------------------------------------
@@ -69,37 +67,6 @@ def _signed(value: float, decimals: int = 2, suffix: str = "%") -> str:
     """Format with an explicit sign and a typographic minus: +1.25%, −1.25%."""
     sign = "+" if value > 0 else (MINUS if value < 0 else "")
     return f"{sign}{abs(value):,.{decimals}f}{suffix}"
-
-
-def _figure(question: str, context: str, *, demo: bool) -> go.Figure:
-    figure = go.Figure()
-    figure.update_layout(
-        template=quantlab_template(),
-        title={"text": question, "subtitle": {"text": context}},
-        showlegend=False,
-    )
-    if demo:
-        _add_demo_badge(figure)
-    return figure
-
-
-def _add_demo_badge(figure: go.Figure) -> None:
-    figure.add_annotation(
-        text="DEMO DATA",
-        xref="paper",
-        yref="paper",
-        x=1.0,
-        y=1.0,
-        yshift=64,
-        xanchor="right",
-        yanchor="bottom",
-        showarrow=False,
-        font={"color": WARN, "size": 10.5},
-        bgcolor=_DEMO_BADGE_BACKGROUND,
-        bordercolor=_DEMO_BADGE_BORDER,
-        borderwidth=1,
-        borderpad=3,
-    )
 
 
 def _label_last_point(figure: go.Figure, series: pd.Series[float], text: str) -> None:
@@ -169,7 +136,7 @@ def plot_price_history(
     context = f"{label} · {len(validated):,} observations"
     if missing:
         context += f" · {missing} missing value(s) shown as gaps"
-    figure = _figure(question, context, demo=demo)
+    figure = titled_figure(question, context, demo=demo)
     figure.add_trace(
         go.Scatter(
             x=validated.index,
@@ -241,7 +208,7 @@ def plot_equity_and_drawdown(
         showlegend=False,
     )
     if demo:
-        _add_demo_badge(figure)
+        add_demo_badge(figure)
 
     figure.add_trace(
         go.Scatter(
@@ -358,7 +325,7 @@ def plot_return_distribution(
         f"historical method · VaR {level} = {var * _PERCENT:.2f}% loss, "
         f"CVaR {level} = {cvar * _PERCENT:.2f}% loss"
     )
-    figure = _figure(question, context, demo=demo)
+    figure = titled_figure(question, context, demo=demo)
     figure.add_trace(
         go.Histogram(
             x=validated.to_numpy() * _PERCENT,
@@ -457,7 +424,7 @@ def plot_correlation_heatmap(
     labels = [str(column) for column in correlation.columns]
     values = correlation.to_numpy()
     context = f"Pearson · {len(returns):,} observations · blue = co-movement, amber = inverse"
-    figure = _figure(question, context, demo=demo)
+    figure = titled_figure(question, context, demo=demo)
     figure.add_trace(
         go.Heatmap(
             z=values,
@@ -537,7 +504,7 @@ def plot_rolling_volatility(
     basis = "annualized" if periods_per_year is not None else "per period"
     axis_title = "Annualized volatility (%)" if periods_per_year is not None else "Volatility (%)"
     context = f"{_series_label(volatility, 'Returns')} · {window}-period window · {basis}"
-    figure = _figure(question, context, demo=demo)
+    figure = titled_figure(question, context, demo=demo)
     figure.add_trace(
         go.Scatter(
             x=volatility.index,
