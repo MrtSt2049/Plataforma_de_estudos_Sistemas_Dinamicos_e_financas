@@ -27,8 +27,9 @@ from typing import Final
 import numpy as np
 import numpy.typing as npt
 
-from quantlab._validation import validate_closed_interval, validate_int
+from quantlab._validation import validate_closed_interval, validate_int, validate_orbit
 from quantlab.dynamics.stability import FixedPoint, classify_map_fixed_point
+from quantlab.exceptions import DomainError
 
 R_MIN: Final[float] = 0.0
 """Smallest growth parameter for which the map keeps ``[0, 1]`` invariant."""
@@ -258,3 +259,77 @@ def logistic_lyapunov_exponent(
     with np.errstate(divide="ignore"):
         log_stretch = np.log(np.abs(growth * (1.0 - 2.0 * orbit)))
     return float(np.mean(log_stretch))
+
+
+def logistic_bifurcation_diagram(
+    r_values: npt.ArrayLike,
+    x0: float,
+    *,
+    n_transient: int = 1_000,
+    n_samples: int = 200,
+) -> npt.NDArray[np.float64]:
+    r"""Sample the long-run states of the logistic map for many values of ``r``.
+
+    For each :math:`r_i`, iterate from ``x0``, discard the first ``n_transient``
+    states and keep the next ``n_samples``:
+    :math:`x_T, x_{T+1}, \dots, x_{T+N-1}` with :math:`T` = ``n_transient`` and
+    :math:`N` = ``n_samples``. Plotting the samples against :math:`r` gives the
+    bifurcation diagram: one point where the orbit settles on a fixed point, ``p``
+    points on a ``p``-cycle, and a filled band where it is chaotic.
+
+    Parameters
+    ----------
+    r_values
+        One-dimensional sequence of growth parameters, each in ``[0, 4]``.
+    x0
+        Initial state shared by every ``r``, in ``[0, 1]``.
+    n_transient
+        Iterations discarded before sampling, ``>= 0``.
+    n_samples
+        States kept per value of ``r``, ``>= 1``.
+
+    Returns
+    -------
+    numpy.ndarray
+        float64 array of shape ``(len(r_values), n_samples)``; row ``i`` holds the
+        samples for ``r_values[i]``. Each row is identical, bit for bit, to
+        ``simulate_logistic_map(r_values[i], x0, n_transient + n_samples - 1)[n_transient:]``.
+
+    Raises
+    ------
+    TypeError
+        If ``x0`` is not a real number or a count is not an integer.
+    InputValidationError
+        If ``r_values`` is empty, not one-dimensional or not finite, ``x0`` is not
+        finite, or a count is out of range.
+    DomainError
+        If a value of ``r`` lies outside ``[0, 4]`` or ``x0`` outside ``[0, 1]``.
+
+    Notes
+    -----
+    The recurrence is sequential in time but independent across ``r``, so all
+    values of ``r`` advance together, one vectorized step at a time. Points near a
+    bifurcation converge slowly: with a short transient they can still be
+    approaching the attractor, which blurs the diagram there. A sample that looks
+    chaotic in the picture is not a proof of chaos (see
+    :func:`logistic_lyapunov_exponent`).
+    """
+    growth = validate_orbit(r_values, name="r_values", min_length=1)
+    outside = (growth < R_MIN) | (growth > R_MAX)
+    if outside.any():
+        raise DomainError(
+            f"r_values must lie in [{R_MIN}, {R_MAX}]; found {int(outside.sum())} value(s) outside."
+        )
+    initial = _validated_x(x0, "x0")
+    transient = validate_int(n_transient, name="n_transient", minimum=0)
+    samples = validate_int(n_samples, name="n_samples", minimum=1)
+
+    state = np.full(growth.shape, initial, dtype=np.float64)
+    for _ in range(transient):
+        state = growth * state * (1.0 - state)
+    diagram = np.empty((growth.size, samples), dtype=np.float64)
+    diagram[:, 0] = state
+    for column in range(1, samples):
+        state = growth * state * (1.0 - state)
+        diagram[:, column] = state
+    return diagram

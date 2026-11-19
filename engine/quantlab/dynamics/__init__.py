@@ -4,6 +4,7 @@ from quantlab.dynamics.integration import ODE_METHODS, OdeMethod, Trajectory
 from quantlab.dynamics.logistic import (
     R_MAX,
     R_MIN,
+    logistic_bifurcation_diagram,
     logistic_derivative,
     logistic_fixed_points,
     logistic_lyapunov_exponent,
@@ -50,6 +51,7 @@ __all__ = [
     "classify_flow_equilibrium",
     "classify_map_fixed_point",
     "detect_period",
+    "logistic_bifurcation_diagram",
     "logistic_derivative",
     "logistic_fixed_points",
     "logistic_lyapunov_exponent",
