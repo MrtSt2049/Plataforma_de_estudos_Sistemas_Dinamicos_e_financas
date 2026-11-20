@@ -48,7 +48,7 @@ flowchart TD
 ### Regras Arquiteturais Fundamentais
 1. **RULE 002 (Isolamento do Motor):** O pacote `engine/quantlab` não depende nem importa Django, DRF, Supabase, React, bibliotecas HTTP (`requests`, `httpx`, `aiohttp`, `urllib3`), nem Celery/Redis. Isso é garantido por análise de AST em `tests/test_architecture.py`.
 2. **RULE 017 & 040 (Auditabilidade dos Dados):** Nenhum dado de mercado é corrigido ou preenchido silenciosamente. Toda limpeza gera um `CleaningReport` com métricas auditáveis guardado junto com o experimento.
-3. **RULE 024 & 025 (Identidade Única via Supabase Auth):** O Django não mantém cadastro de usuários duplicado. O backend apenas valida a assinatura e as claims do JWT (`sub`, `iss`, `aud`, `exp`).
+3. **RULE 024 & 025 (Identidade Única via Supabase Auth):** O Django não mantém cadastro de usuários duplicado. O backend apenas valida a assinatura (com as chaves públicas do projeto, JWKS, algoritmo ES256) e as claims do JWT (`sub`, `iss`, `aud`, `exp`). Nenhum segredo de assinatura é guardado ([ADR 0007](adr/0007-chaves-supabase-jwks-e-frontend.md)).
 4. **RULE 027 (Row Level Security):** Todas as tabelas que contêm dados privados possuem RLS ativado no PostgreSQL por padrão, validando `auth.uid() = user_id`.
 
 ---
@@ -65,15 +65,17 @@ flowchart TD
 | **Motor Científico** | `quantlab.dynamics` (Mapa logístico, órbitas, estabilidade, Lyapunov) | ✅ Concluído | 100% Cobertura (76 testes dedicados) |
 | **Motor Científico** | `quantlab.visualization` (Gráficos financeiros com tokens e Plotly) | ✅ Concluído | 100% Cobertura (20 testes dedicados) |
 | **Motor Científico** | `quantlab.dynamics` (Sistema contínuo de Lorenz, integração adaptativa DOP853, estabilidade de equilíbrios de fluxos) | ✅ Concluído | 100% Cobertura (135 testes dedicados; ADR 0004) |
-| **Motor Científico** | `quantlab.research` (Research Core: sementes, experimentos, auditoria) | ⏳ **Pendente** | Falta implementar módulo e testes |
-| **Motor Científico** | Provedor de Dados Online & Cache DuckDB/Parquet | ⏳ **Pendente** | Proposta aberta no ADR 0002 |
+| **Motor Científico** | `quantlab.research` (Research Core: sementes, experimentos, hash de dados, reprodução) | ✅ Concluído | 100% Cobertura (143 testes dedicados; ADR 0006). Pendente: artefatos e `CleaningReport` serializado, que dependem do Storage |
+| **Conectores** | `quantlab_connectors.yahoo`: provedor online do Yahoo Finance (fora do motor, ADR 0005) | ✅ Concluído | 100% Cobertura (65 testes sem rede, mais 4 de contrato com `-m network`) |
+| **Motor Científico** | Cache DuckDB/Parquet dos dados baixados | ⏳ **Pendente** | Recomendado no ADR 0002; necessário para reproduzir resultados, pois o Yahoo revisa preços |
 | **Motor Científico** | `quantlab.visualization` (Atrator de Lorenz 3D, Diagrama de Bifurcação) | ✅ Concluído | 100% Cobertura (37 testes dedicados: 19 dos gráficos e 18 do diagrama no motor) |
+| **Supabase** | Projeto de desenvolvimento e chaves no `.env` local | 🔧 Configurado (sem código) | Verificado localmente em 2026-11-20: URL, chave `anon` e projeto consistentes; o projeto publica uma chave ES256 em JWKS (ADR 0007). `DATABASE_URL` ainda é exemplo |
 | **Supabase** | Migrações SQL e Esquema Relacional | ⏳ **Pendente** | Estruturação de `supabase/migrations/` |
 | **Supabase** | Políticas de RLS e Buckets de Storage | ⏳ **Pendente** | RLS e configuração de storage |
 | **Backend Django** | Setup do Projeto e Configuração Modular | ⏳ **Pendente** | Diretório `backend/` e settings |
 | **Backend Django** | Validação JWT do Supabase (`apps/accounts`) | ⏳ **Pendente** | Auth provider do Django sem duplicação |
 | **Backend Django** | APIs de Orquestração REST e OpenAPI (`drf-spectacular`) | ⏳ **Pendente** | Endpoints de análise, dinâmica e pesquisa |
-| **Frontend** | Setup React + TypeScript (Vite) + Tailwind | ⏳ **Pendente** | Diretório `frontend/` e tokens visuais |
+| **Frontend** | Setup React + TypeScript (Vite) + Tailwind | ⏳ **Pendente** | Diretório `frontend/` e tokens visuais. Hoje só existem `package.json` e `node_modules/` na raiz, com os clientes do Supabase |
 | **Frontend** | Integração Supabase Auth | ⏳ **Pendente** | Fluxo de autenticação e proteção de rotas |
 | **Frontend** | Telas de Análise Quantitativa e Gráficos Plotly | ⏳ **Pendente** | Dashboards de ativos, drawdown, distribuição |
 | **Frontend** | Telas de Sistemas Dinâmicos (Mapa Logístico & Lorenz 3D) | ⏳ **Pendente** | Controles interativos de parâmetros e canvas |
@@ -102,9 +104,10 @@ flowchart TD
   - `SeedManager`: gerenciamento explícito de sementes via `numpy.random.Generator`.
   - `Experiment`: classe imutável que registra hipótese, parâmetros, versão do motor, semente, hash dos dados de entrada (`data_hash`) e carimbo de data/hora.
   - `ExperimentRun`: resultado da execução com métricas consolidadas e referências a artefatos.
-- **Entregáveis:**
-  - Código: `engine/quantlab/research/experiment.py`, `engine/quantlab/research/seeds.py`
-  - Testes: `tests/research/test_experiment.py`, `tests/research/test_seeds.py`
+- **Entregáveis (✅ concluídos, [ADR 0006](adr/0006-research-core.md)):**
+  - Código: `engine/quantlab/research/experiment.py`, `engine/quantlab/research/seeds.py` e `engine/quantlab/research/hashing.py` (impressão digital dos dados, o `data_hash`)
+  - Testes: `tests/research/test_experiment.py`, `tests/research/test_seeds.py`, `tests/research/test_hashing.py`
+  - **Fora do escopo desta entrega, pendentes:** referências a artefatos em `ExperimentRun` e a serialização do `CleaningReport` junto do experimento. Dependem do bucket `experiment-artifacts` (Fase 3.2).
 
 #### 1.3. Visualizações de Sistemas Dinâmicos (`engine/quantlab/visualization/dynamics.py`)
 - Trajetória 3D interativa do Atrator de Lorenz via `plotly.graph_objects.Scatter3d` com o tema visual do QuantLab.
@@ -118,10 +121,8 @@ flowchart TD
 ### Fase 2: Provedor de Dados Online e Armazenamento Analítico
 
 #### 2.1. Ingestão Online com Respeito à Arquitetura (ADR 0002)
-- **Decisão Arquitetural:** O motor científico proíbe bibliotecas de rede (`requests`, `httpx`). A camada de dados online será implementada:
-  - Ou através de um adaptador injetado (Inversão de Controle);
-  - Ou através de um serviço na camada de dados / backend que extrai dados externos e entrega séries OHLCV padronizadas para o motor.
-- **Fonte Selecionada:** Provedor com suporte a ativos brasileiros e internacionais (ex: Yahoo Finance / Brapi).
+- **Decisão Arquitetural (✅ [ADR 0005](adr/0005-fonte-online-yahoo-finance.md)):** O motor científico proíbe bibliotecas de rede (`requests`, `httpx`). O provedor online vive num pacote separado, `connectors/quantlab_connectors`, que depende do motor e implementa o `PriceProvider`. O motor não importa nada dele.
+- **Fonte Selecionada (✅):** Yahoo Finance via `yfinance`, com suporte a ativos brasileiros (sufixo `.SA`) e internacionais. É um cliente não oficial: uso de estudo e pesquisa.
 - **Armazenamento:** Persistência em formato colunar Parquet particionado por ativo/ano, consultado via DuckDB para alto desempenho.
 
 ---
@@ -150,7 +151,8 @@ flowchart TD
 
 #### 4.2. Autenticação JWT do Supabase (`apps/accounts/`)
 - Criação de autenticador personalizado `SupabaseJWTAuthentication` (RULE 025).
-- Validação criptográfica da chave pública (JWKS) do Supabase Auth.
+- Validação criptográfica com a chave pública (JWKS, `<SUPABASE_URL>/auth/v1/.well-known/jwks.json`) do Supabase Auth, escolhida pelo `kid`, com cache. **Só `ES256` é aceito** (lista fixa de algoritmos); `none`, `HS*` e `RS*` são rejeitados. O `SUPABASE_JWT_SECRET` legado não é usado nem guardado.
+- Verificação de `exp`, `iss` (esperado `<SUPABASE_URL>/auth/v1`), `aud` (esperado `authenticated`) e `sub` como UUID. Os valores esperados de `iss` e `aud` vêm da documentação do Supabase e devem ser confirmados com um token real.
 - Extração segura do `user_id` (`sub`) sem necessidade de tabela duplicada de usuários (RULE 024).
 
 #### 4.3. Aplicações de Negócio e Serviços
@@ -165,7 +167,7 @@ flowchart TD
 ### Fase 5: Frontend React & TypeScript
 
 #### 5.1. Fundação do Frontend (`frontend/`)
-- Setup com **Vite + React + TypeScript** (modo strict, sem `any`).
+- Setup com **Vite + React + TypeScript** (modo strict, sem `any`). As variáveis públicas são `VITE_SUPABASE_URL` e `VITE_SUPABASE_PUBLISHABLE_KEY`, e a porta de desenvolvimento (CORS) é a 5173 ([ADR 0007](adr/0007-chaves-supabase-jwks-e-frontend.md)).
 - Configuração do TailwindCSS mapeando fielmente a paleta de cores e tokens do design system (`Assets/`):
   - Fundo / Superfície: `#0B0F14` / `#111820` / `#18222C`
   - Borda: `#263442`
@@ -176,7 +178,7 @@ flowchart TD
   - Verde Positivo: `#10B981`
 
 #### 5.2. Gestão de Estado e Comunicação
-- Cliente Supabase `@supabase/supabase-js` para autenticação.
+- Cliente Supabase `@supabase/supabase-js` para autenticação (a sessão fica no navegador, então o `@supabase/ssr` não é necessário).
 - Cliente Axios/Fetch com interceptor automático para inclusão do `Bearer <token>` nas chamadas ao Django.
 - Tratamento explícito e obrigatório dos 4 estados de interface (RULE 034):
   - `Loading`, `Success`, `Empty`, `Error`.
@@ -191,7 +193,12 @@ flowchart TD
 
 ### Fase 6: Pesquisa Avançada e Expansão Futura
 - **Otimização de Carteiras:** Fronteira Eficiente de Markowitz, Black-Litterman e alocação por paridade de risco.
-- **Modelos Estocásticos:** Simulação de Monte Carlo com Movimento Browniano Geométrico e processos com saltos (Merton Jump Diffusion).
+- **Modelos Estocásticos:** Cadeias e processos de Markov (discretos e contínuos), martingais e apreçamento discreto (árvore binomial / Black–Scholes discreto), simulação de Monte Carlo com Movimento Browniano Geométrico e processos com saltos (Poisson composto / Merton Jump Diffusion).
+  - **Base teórica já documentada em `docs/math/` (sem código no motor ainda):**
+    - [Fundamentos de probabilidade, convergência, ergodicidade e grandes desvios](math/fundamentos-de-probabilidade.md)
+    - [Esperança condicional, martingais e apreçamento em tempo discreto](math/esperanca-condicional-e-martingais.md)
+    - [Cadeias de Markov em tempo discreto](math/cadeias-de-markov-tempo-discreto.md)
+    - [Processos de Markov em tempo contínuo](math/processos-de-markov-tempo-continuo.md)
 - **Processamento Assíncrono:** Introdução de Celery + Redis para execuções pesadas de Monte Carlo e calibrações de parâmetros (RULE 023).
 
 ---

@@ -2,7 +2,7 @@
 
 **Quantitative Finance & Computational Dynamics**
 
-![Status](https://img.shields.io/badge/status-fase%202%20em%20andamento-yellow)
+![Status](https://img.shields.io/badge/status-motor%200.1%20em%20fechamento-yellow)
 ![Python](https://img.shields.io/badge/python-3.12%2B-blue)
 
 Um laboratório para estudar finanças quantitativas e sistemas dinâmicos no mesmo código. A ideia é ter um lugar onde dá para formular uma hipótese, rodar um experimento e repetir o resultado meses depois, com os mesmos dados, parâmetros e sementes aleatórias.
@@ -17,15 +17,15 @@ Uma pergunta que serve de exemplo para o tipo de pesquisa que quero fazer aqui: 
 
 ## Estado atual
 
-O motor científico está em construção. A análise quantitativa da 0.1 está implementada e testada. Falta escolher a fonte de dados online.
+Os quatro módulos do motor científico da 0.1 (dados de mercado, análise quantitativa, sistemas dinâmicos e Research Core) estão implementados e testados. Falta decidir o fechamento da versão (cache em Parquet/DuckDB, marcação da versão e publicação), e backend, banco e frontend continuam planejados.
 
 | O que | Situação |
 |---|---|
 | Arquitetura e stack | Definidas ([ADR 0001](docs/adr/0001-empacotamento-do-motor-e-ambiente.md)) |
 | Regras de desenvolvimento | Escritas (`.agents/rules/`) |
 | Design da interface | Primeira versão em `Assets/` |
-| Fase 1, fundação científica | Em andamento: ambiente, validação, retornos, volatilidade, mapa logístico e sistema de Lorenz prontos. Falta o Research Core |
-| Fase 2, análise quantitativa | Em andamento: indicadores, risco, correlação, camada de dados e gráficos prontos. **Falta escolher a fonte online** ([ADR 0002](docs/adr/0002-camada-de-dados-de-mercado.md)) |
+| Fase 1, fundação científica | Ambiente, validação, retornos, volatilidade, mapa logístico, sistema de Lorenz e Research Core ([ADR 0006](docs/adr/0006-research-core.md)) prontos |
+| Fase 2, análise quantitativa | Indicadores, risco, correlação, camada de dados, gráficos e provedor online (yfinance, [ADR 0005](docs/adr/0005-fonte-online-yahoo-finance.md)) prontos. Falta o cache em Parquet/DuckDB |
 | Backend, banco e frontend | Planejados, ainda sem código |
 
 Implementado no motor até agora:
@@ -36,15 +36,26 @@ Implementado no motor até agora:
 | `quantlab.data` | Esquema OHLCV com metadados de proveniência, interface de provedores, provedor de CSV local, padronização, verificação de integridade e limpeza auditada | [ADR 0002](docs/adr/0002-camada-de-dados-de-mercado.md) |
 | `quantlab.dynamics` | Mapa logístico, estabilidade de pontos fixos, detecção de período, expoente de Lyapunov. Sistema de Lorenz com integração adaptativa (SciPy), equilíbrios, autovalores e limiar de Hopf | [Mapa logístico](docs/math/mapa-logistico.md), [Sistema de Lorenz](docs/math/sistema-lorenz.md), [ADR 0004](docs/adr/0004-integracao-numerica.md) |
 | `quantlab.visualization` | Gráficos Plotly na identidade visual: preço, patrimônio com drawdown, distribuição com VaR/CVaR, mapa de correlação e volatilidade móvel. Atrator de Lorenz em 3D com os equilíbrios e diagrama de bifurcação do mapa logístico (extra opcional `plot`) | [ADR 0003](docs/adr/0003-visualizacao-no-motor.md) |
+| `quantlab.research` | `SeedManager` (fluxos aleatórios nomeados e independentes a partir de uma semente), `hash_data` (impressão digital SHA-256 dos dados usados), `Experiment` (hipótese, modelo, parâmetros, semente, dados, versão), `run_experiment` e `ExperimentRun` (métricas, ambiente, duração, `reproduces`), com `to_dict`/`from_dict` para persistência | [ADR 0006](docs/adr/0006-research-core.md) |
+| `quantlab_connectors` (fora do motor) | `YahooPriceProvider`: preços do Yahoo Finance no esquema canônico, ajustados ou não, com erros traduzidos para o contrato do `PriceProvider` (extra opcional `yahoo`) | [ADR 0005](docs/adr/0005-fonte-online-yahoo-finance.md) |
 
 Vou atualizar esta tabela conforme as fases forem saindo do papel. Nenhum item é marcado como pronto antes de ter código e testes rodando.
 
-## O que a versão 0.1 vai ter
+Fundamentação teórica documentada em `docs/math/` (sem módulo implementado ainda — base matemática para a Fase 6):
 
-A 0.1 é só o motor científico, em quatro módulos.
+| Tema | Escopo teórico | Documentação |
+|---|---|---|
+| Probabilidade e teoria limite | Teoria da medida, esperança, desigualdades, convergência, Borel–Cantelli, LGN, TLC, transformadas, Leis 0–1, teoria ergódica e grandes desvios | [Fundamentos de probabilidade](docs/math/fundamentos-de-probabilidade.md) |
+| Esperança condicional e martingais | Esperança condicional via Radon–Nikodým, filtrações, tempos de parada, desigualdades de Doob, amostragem opcional, convergência, Decomposição de Doob, transformada martingale, representação binomial e Black–Scholes em tempo discreto | [Esperança condicional e martingais](docs/math/esperanca-condicional-e-martingais.md) |
+| Cadeias de Markov (tempo discreto) | Matriz estocástica, Chapman–Kolmogorov, classes de comunicação, absorção e matriz fundamental, propriedade forte, recorrência/transitoriedade, distribuição invariante, convergência, reversibilidade, teorema ergódico e ramificação | [Cadeias de Markov em tempo discreto](docs/math/cadeias-de-markov-tempo-discreto.md) |
+| Processos de Markov (tempo contínuo) | Trajetórias, explosão, matriz geradora $Q$, $P(t) = e^{tQ}$, equações Forward/Backward, Poisson, cadeia embutida, absorção, recorrência, balanço global, convergência sem periodicidade e teorema ergódico | [Processos de Markov em tempo contínuo](docs/math/processos-de-markov-tempo-continuo.md) |
+
+## O que a versão 0.1 tem
+
+A 0.1 é só o motor científico, em quatro módulos, todos implementados e testados.
 
 **Market Data**
-- Download de dados históricos e consulta de ativos
+- Download de dados históricos (Yahoo Finance) e leitura de CSV local, com consulta de ativos nos arquivos locais (o Yahoo não tem catálogo para listar)
 - Limpeza de valores ausentes e duplicados
 - Validação de integridade e padronização das séries
 
@@ -83,7 +94,7 @@ O Supabase Auth é o único sistema de identidade. O fluxo:
 
 1. O usuário faz login no frontend pelo Supabase e recebe um JWT.
 2. O frontend manda o token no header `Authorization`.
-3. O Django valida assinatura, expiração, emissor e claims, seguindo a configuração oficial do Supabase.
+3. O Django valida assinatura, expiração, emissor, audiência e claims com as chaves públicas do projeto (JWKS, algoritmo ES256, que é o que o projeto de desenvolvimento publica). Nenhum segredo de assinatura é guardado ([ADR 0007](docs/adr/0007-chaves-supabase-jwks-e-frontend.md)).
 4. A requisição segue com a identidade já verificada.
 
 O Django não mantém um segundo cadastro de usuários.
@@ -113,17 +124,17 @@ Séries longas não viram milhares de linhas no Postgres sem uma boa razão.
 | Dados analíticos | Parquet + DuckDB |
 | Visualização | Plotly, Matplotlib |
 | Backend | Django, Django REST Framework, drf-spectacular |
-| Frontend | React + TypeScript |
+| Frontend | React + TypeScript (Vite) |
 | Auth, banco e arquivos | Supabase (Auth, PostgreSQL, Storage) |
 | Testes | Pytest |
 | Qualidade | Ruff, Mypy |
 | Tarefas assíncronas (futuro) | Celery + Redis |
 
-A fonte dos dados de mercado para a 0.1 ainda está em aberto. Quando eu escolher, a decisão entra como ADR, com as alternativas e o motivo.
+A fonte online dos dados de mercado da 0.1 é o Yahoo Finance, via `yfinance` (cliente não oficial, uso de estudo e pesquisa). Arquivos CSV locais continuam suportados e são a opção reprodutível. A decisão, as alternativas e os limites estão no [ADR 0005](docs/adr/0005-fonte-online-yahoo-finance.md).
 
 ## Estrutura do repositório
 
-Esta é a estrutura prevista. Hoje existem `engine/quantlab/` (com `analysis/`, `data/`, `dynamics/` e `visualization/`), `tests/`, `docs/`, `Assets/` e `.agents/`. Os outros diretórios serão criados quando a fase correspondente começar.
+Esta é a estrutura prevista. Hoje existem `engine/quantlab/` (com `analysis/`, `data/`, `dynamics/`, `research/` e `visualization/`), `connectors/quantlab_connectors/` (integrações com serviços externos, fora do motor), `tests/`, `docs/`, `Assets/` e `.agents/`. Os outros diretórios serão criados quando a fase correspondente começar.
 
 ```
 quantlab/
@@ -145,6 +156,7 @@ quantlab/
 │   ├── strategies/
 │   ├── dynamics/
 │   └── research/
+├── connectors/quantlab_connectors/  # integrações com serviços externos (yahoo.py); dependem do motor, nunca o contrário
 ├── frontend/src/             # components, pages, services, hooks, contexts, types
 ├── supabase/                 # migrations/, policies/ (RLS), seed.sql
 ├── notebooks/
@@ -180,7 +192,9 @@ Pré-requisito: [uv](https://docs.astral.sh/uv/). Ele instala o Python certo (3.
 
 ```bash
 uv sync                 # cria .venv com o motor e as ferramentas de desenvolvimento
-uv run pytest --cov     # testes com cobertura
+uv sync --extra yahoo   # (só para usar o provedor do Yahoo fora do desenvolvimento)
+uv run pytest --cov     # testes com cobertura (sem rede)
+uv run pytest -m network # testes de contrato contra o Yahoo real (opcional, precisa de internet)
 uv run ruff check .     # lint
 uv run ruff format .    # formatação
 uv run mypy             # tipagem (modo strict)
@@ -307,17 +321,66 @@ returns = simple_returns(cleaned.data["close"])
 # cleaned.report registra o que foi removido ou preenchido; guarde-o junto do experimento.
 ```
 
+Para baixar do Yahoo Finance em vez de ler CSV, troque só o provedor (precisa do extra `yahoo` e de internet). O resto do pipeline não muda:
+
+```python
+import datetime as dt
+
+from quantlab_connectors.yahoo import YahooPriceProvider
+
+provider = YahooPriceProvider(adjusted=True)  # `adjusted` é obrigatório (RULE 040)
+history = provider.fetch("PETR4.SA", start=dt.date(2024, 1, 2), end=dt.date(2024, 12, 31))
+history.metadata  # símbolo, fonte, frequência, moeda e se os preços são ajustados
+# check_ohlcv_integrity, clean_ohlcv e simple_returns, como no exemplo acima.
+```
+
+Ticker inexistente levanta `SymbolNotFoundError`, falha de rede ou limite de requisições levanta `DataSourceError`, e um período sem pregão devolve uma série vazia. O Yahoo revisa preços passados: para reproduzir um resultado depois, guarde a série usada, não só o símbolo e as datas. O código acima não traz números de saída porque os valores mudam com o tempo.
+
+Um experimento registra a hipótese, os parâmetros, a semente e as versões, e pode ser refeito para conferir se o resultado reproduz. Toda aleatoriedade sai do `SeedManager`, nunca de um gerador sem semente:
+
+```python
+import json
+
+from quantlab.dynamics import detect_period, simulate_logistic_map
+from quantlab.research import Experiment, ExperimentRun, run_experiment
+
+
+def logistic_period(parameters, seeds):
+    x0 = seeds.generator("x0").uniform(0.05, 0.95)  # fluxo nomeado, derivado da semente
+    orbit = simulate_logistic_map(r=parameters["r"], x0=x0, n_steps=4_000)[2_000:]
+    return {"period": float(detect_period(orbit, atol=1e-6))}
+
+
+experiment = Experiment(
+    name="Período do mapa logístico em r = 3,5",
+    hypothesis="Para qualquer condição inicial, a órbita converge para um ciclo de período 4.",
+    model="logistic_map",
+    parameters={"r": 3.5},
+    seed=7,
+)
+run = run_experiment(experiment, logistic_period)
+dict(run.metrics)  # {'period': 4.0}
+
+# to_dict() só tem dicts, listas, números, textos e datas ISO: pronto para guardar
+saved = json.dumps(run.to_dict())
+restored = ExperimentRun.from_dict(json.loads(saved))
+again = run_experiment(restored.experiment, logistic_period)  # mesma semente, mesmos parâmetros
+again.reproduces(restored)  # True
+```
+
+Com dados reais, `hash_data(cleaned.data)` gera a impressão digital da série usada. Guarde-a em `Experiment(data_hash=...)`: se a fonte revisar um preço, o hash muda e `reproduces` recusa comparar os dois resultados em vez de dar uma resposta enganosa. A igualdade é exata por padrão. Entre máquinas ou versões de bibliotecas, passe `rtol` e `atol` explícitos. O que o Research Core garante e o que não garante está no [ADR 0006](docs/adr/0006-research-core.md).
+
 O que já vale para qualquer pessoa que clonar o repositório:
 
-- Credenciais ficam em variáveis de ambiente. O `.env.example` vai ter só os nomes e valores fictícios.
+- Credenciais ficam em variáveis de ambiente. O `.env.example` tem só os nomes e valores fictícios: copie para `.env` e preencha. Só variáveis `VITE_*` chegam ao navegador.
 - `.env`, tokens, chaves, bancos locais e dados privados não entram no Git.
 - Desenvolvimento e produção usam projetos Supabase separados.
 
 ## Roadmap
 
-- [ ] **Fase 1, fundação científica:** ambiente com `uv`, estrutura do motor, primeiros algoritmos, testes
-- [ ] **Fase 2, análise quantitativa:** provedores de dados, indicadores, risco, correlação, visualizações
-- [ ] **Fase 3, sistemas dinâmicos:** sistemas discretos e contínuos, estabilidade, bifurcações, caos
+- [x] **Fase 1, fundação científica:** ambiente com `uv`, estrutura do motor, primeiros algoritmos, testes
+- [x] **Fase 2, análise quantitativa:** provedores de dados, indicadores, risco, correlação, visualizações
+- [x] **Fase 3, sistemas dinâmicos:** sistemas discretos e contínuos, estabilidade, bifurcações, caos
 - [ ] **Fase 4, infraestrutura e backend:** projeto Supabase, Auth, validação de JWT no Django, RLS, APIs, Storage
 - [ ] **Fase 5, frontend:** React, integração com Auth e API, dashboards e painel de experimentos
 - [ ] **Fase 6, pesquisa avançada:** otimização de portfólios, econometria, backtesting, modelos estocásticos, Machine Learning
