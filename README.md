@@ -2,7 +2,7 @@
 
 **Quantitative Finance & Computational Dynamics**
 
-![Status](https://img.shields.io/badge/status-motor%200.1%20em%20fechamento-yellow)
+![Status](https://img.shields.io/badge/status-motor%200.1%20pronto-green)
 ![Python](https://img.shields.io/badge/python-3.12%2B-blue)
 
 Um laboratório para estudar finanças quantitativas e sistemas dinâmicos no mesmo código. A ideia é ter um lugar onde dá para formular uma hipótese, rodar um experimento e repetir o resultado meses depois, com os mesmos dados, parâmetros e sementes aleatórias.
@@ -17,7 +17,7 @@ Uma pergunta que serve de exemplo para o tipo de pesquisa que quero fazer aqui: 
 
 ## Estado atual
 
-Os quatro módulos do motor científico da 0.1 (dados de mercado, análise quantitativa, sistemas dinâmicos e Research Core) estão implementados e testados. Falta decidir o fechamento da versão (cache em Parquet/DuckDB, marcação da versão e publicação), e backend, banco e frontend continuam planejados.
+A versão 0.1, o motor científico, está pronta: os quatro módulos (dados de mercado, análise quantitativa, sistemas dinâmicos e Research Core) estão implementados e testados. Ficam para as próximas versões o cache em Parquet/DuckDB e, depois, backend, banco e frontend, que continuam planejados.
 
 | O que | Situação |
 |---|---|

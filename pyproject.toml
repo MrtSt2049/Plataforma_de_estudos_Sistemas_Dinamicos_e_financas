@@ -1,6 +1,6 @@
 [project]
 name = "quantlab"
-version = "0.1.0.dev0"
+version = "0.1.0"
 description = "Scientific engine for quantitative finance and computational dynamics."
 readme = "README.md"
 license = "MIT"
