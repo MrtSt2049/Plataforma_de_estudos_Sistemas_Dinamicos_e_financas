@@ -27,6 +27,11 @@ FORBIDDEN_TOP_LEVEL_PACKAGES = {
     "fastapi",
     "celery",
     "redis",
+    # Network clients and connectors live outside the engine (docs/adr/0005):
+    # the engine never imports them, the connectors import the engine.
+    "yfinance",
+    "curl_cffi",
+    "quantlab_connectors",
 }
 
 

@@ -17,10 +17,18 @@ Error contract:
 from __future__ import annotations
 
 import datetime as dt
+import re
 from typing import Protocol, runtime_checkable
 
 from quantlab.data.schema import PriceHistory
 from quantlab.exceptions import InputValidationError
+
+SYMBOL_PATTERN = re.compile(r"[A-Za-z0-9^][A-Za-z0-9._^=-]*")
+"""Letters, digits and . _ ^ = - (as in PETR4.SA, ^BVSP, BRL=X, BTC-USD), not starting with a dot.
+
+Path separators, spaces and URL metacharacters are excluded, so a symbol can never point
+outside a directory or alter a request URL.
+"""
 
 
 @runtime_checkable
@@ -33,7 +41,11 @@ class PriceProvider(Protocol):
         ...
 
     def available_symbols(self) -> tuple[str, ...]:
-        """Return the symbols this provider can deliver, sorted."""
+        """Return the symbols this provider can deliver, sorted.
+
+        A provider backed by an open web service has no catalogue to list and raises
+        :class:`NotImplementedError` instead of returning an empty (and misleading) tuple.
+        """
         ...
 
     def fetch(
@@ -45,6 +57,14 @@ class PriceProvider(Protocol):
         source has no observation in the range.
         """
         ...
+
+
+def validate_symbol(symbol: str) -> None:
+    """Raise :class:`InputValidationError` unless ``symbol`` matches :data:`SYMBOL_PATTERN`."""
+    if not isinstance(symbol, str) or not SYMBOL_PATTERN.fullmatch(symbol):
+        raise InputValidationError(
+            f"invalid symbol {symbol!r}: use letters, digits and . _ ^ = - only."
+        )
 
 
 def validate_date_range(start: dt.date | None, end: dt.date | None) -> None:

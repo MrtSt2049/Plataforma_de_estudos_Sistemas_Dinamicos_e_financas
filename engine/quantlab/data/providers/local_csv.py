@@ -3,26 +3,16 @@
 from __future__ import annotations
 
 import datetime as dt
-import re
 from collections.abc import Mapping
 from pathlib import Path
 
 import pandas as pd
 
 from quantlab.data.processing.standardize import standardize_ohlcv
-from quantlab.data.providers.base import validate_date_range
+from quantlab.data.providers.base import SYMBOL_PATTERN, validate_date_range, validate_symbol
 from quantlab.data.schema import Frequency, PriceHistory, PriceMetadata
-from quantlab.exceptions import (
-    DataSourceError,
-    InputValidationError,
-    SymbolNotFoundError,
-)
+from quantlab.exceptions import DataSourceError, SymbolNotFoundError
 
-_SYMBOL_PATTERN = re.compile(r"[A-Za-z0-9^][A-Za-z0-9._^=-]*")
-"""Letters, digits and . _ ^ = - (as in PETR4.SA, ^BVSP, BRL=X), not starting with a dot.
-
-Path separators are excluded, so a symbol can never point outside the directory.
-"""
 _SUFFIX = ".csv"
 _ONE_DAY = pd.Timedelta(days=1)
 
@@ -101,15 +91,12 @@ class CsvPriceProvider:
             sorted(
                 path.stem
                 for path in self._directory.glob(f"*{_SUFFIX}")
-                if path.is_file() and _SYMBOL_PATTERN.fullmatch(path.stem)
+                if path.is_file() and SYMBOL_PATTERN.fullmatch(path.stem)
             )
         )
 
     def _path_for(self, symbol: str) -> Path:
-        if not isinstance(symbol, str) or not _SYMBOL_PATTERN.fullmatch(symbol):
-            raise InputValidationError(
-                f"invalid symbol {symbol!r}: use letters, digits and . _ ^ = - only."
-            )
+        validate_symbol(symbol)
         path = self._directory / f"{symbol}{_SUFFIX}"
         if not path.is_file():
             raise SymbolNotFoundError(f"symbol {symbol!r} not found in {self._directory}.")

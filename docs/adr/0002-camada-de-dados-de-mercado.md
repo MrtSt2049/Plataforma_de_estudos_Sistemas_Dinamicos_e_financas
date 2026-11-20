@@ -1,6 +1,6 @@
 # ADR 0002 — Camada de dados de mercado e escolha da fonte externa
 
-- **Status:** parcialmente aceita. A interface e o provedor local estão aceitos. A fonte externa é uma **proposta pendente de decisão do responsável**.
+- **Status:** aceita. A interface e o provedor local foram aceitos em 2026-11-19. A fonte externa foi decidida em 2026-11-20: yfinance, num pacote fora do motor ([ADR 0005](0005-fonte-online-yahoo-finance.md)).
 - **Data:** 2026-11-19
 
 ## Contexto
@@ -30,9 +30,11 @@ As funções de análise (retornos, risco, correlação) já existem e recebem `
 
 A limpeza muda os números de todos os resultados seguintes. O preenchimento para frente, por exemplo, cria retornos zero e reduz a volatilidade. Por isso nenhuma etapa limpa dados de forma implícita, e o relatório de limpeza pode ser guardado junto do experimento (RULE 017). Problemas que exigem julgamento, como uma máxima abaixo da mínima ou um salto de 60% que pode ser um desdobramento não ajustado, são apenas relatados.
 
-## Proposta (pendente): fonte externa da 0.1
+## Proposta original: fonte externa da 0.1 (resolvida no ADR 0005)
 
-O código da interface já permite plugar qualquer uma das alternativas abaixo. **Nenhuma foi implementada**, porque a escolha cabe ao responsável pelo projeto. Termos de uso, limites e cobertura mudam com o tempo e precisam ser conferidos no momento da decisão.
+> **Atualização (2026-11-20):** o responsável escolheu o **yfinance**. A decisão, o mapeamento de erros e o local do código estão no [ADR 0005](0005-fonte-online-yahoo-finance.md). A análise abaixo é mantida como registro do que foi comparado.
+
+O código da interface permite plugar qualquer uma das alternativas abaixo. Termos de uso, limites e cobertura mudam com o tempo e precisam ser conferidos no momento da decisão.
 
 | Alternativa | Pontos a favor | Pontos contra |
 |---|---|---|
@@ -50,4 +52,4 @@ O código da interface já permite plugar qualquer uma das alternativas abaixo. 
 
 - Trocar ou adicionar fontes exige apenas uma nova classe que implemente `PriceProvider`, sem tocar na análise.
 - Cada provedor novo traz sua dependência (cliente HTTP ou biblioteca) e precisa de testes que não acessem a rede, com respostas gravadas.
-- O teste de arquitetura (`tests/test_architecture.py`) proíbe bibliotecas HTTP no motor. Um provedor online vai exigir uma decisão explícita: abrir exceção para o subpacote `quantlab.data.providers` ou colocar os provedores online fora do motor, no backend. Essa decisão deve ser registrada quando a fonte for escolhida.
+- O teste de arquitetura (`tests/test_architecture.py`) proíbe bibliotecas HTTP no motor. Um provedor online exigia uma decisão explícita: abrir exceção para o subpacote `quantlab.data.providers` ou colocar os provedores online fora do motor. **Decidido no [ADR 0005](0005-fonte-online-yahoo-finance.md):** fora do motor, em `connectors/`, sem exceção à RULE 002.

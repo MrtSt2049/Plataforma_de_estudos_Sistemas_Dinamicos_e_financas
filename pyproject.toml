@@ -15,6 +15,8 @@ dependencies = [
 [project.optional-dependencies]
 # Charts for notebooks and reports (see docs/adr/0003). The numerical core does not need them.
 plot = ["plotly>=6.0"]
+# Yahoo Finance prices (see docs/adr/0005). Lives in connectors/, outside the engine (RULE 002).
+yahoo = ["yfinance>=1.8.0"]
 
 [dependency-groups]
 dev = [
@@ -25,6 +27,7 @@ dev = [
     "pytest-cov>=6.0",
     "ruff>=0.8",
     "scipy-stubs>=1.18.1.1",
+    "yfinance>=1.8.0",
 ]
 
 [build-system]
@@ -32,13 +35,14 @@ requires = ["hatchling>=1.26"]
 build-backend = "hatchling.build"
 
 # The engine lives in engine/quantlab (see docs/adr/0001). The import name stays `quantlab`.
+# Connectors to external services live in connectors/, outside the engine (docs/adr/0005).
 [tool.hatch.build.targets.wheel]
-packages = ["engine/quantlab"]
+packages = ["engine/quantlab", "connectors/quantlab_connectors"]
 
 [tool.ruff]
 line-length = 100
 target-version = "py312"
-src = ["engine", "tests"]
+src = ["engine", "connectors", "tests"]
 # Vendored agent skills and design assets are not project code.
 extend-exclude = [".agents", "Assets"]
 
@@ -72,24 +76,33 @@ convention = "numpy"
 [tool.mypy]
 python_version = "3.12"
 strict = true
-files = ["engine/quantlab", "tests"]
-mypy_path = "engine"
+files = ["engine/quantlab", "connectors/quantlab_connectors", "tests"]
+mypy_path = ["engine", "connectors"]
 warn_unreachable = true
 
 [[tool.mypy.overrides]]
-# Plotly ships no type information (no py.typed marker).
-module = ["plotly", "plotly.*"]
+# Plotly and yfinance ship no type information (no py.typed marker).
+module = ["plotly", "plotly.*", "yfinance", "yfinance.*"]
 ignore_missing_imports = true
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-addopts = ["-ra", "--strict-markers", "--strict-config", "--import-mode=importlib"]
+# Tests marked `network` call real services and are off by default: run them with `-m network`.
+addopts = [
+    "-ra",
+    "--strict-markers",
+    "--strict-config",
+    "--import-mode=importlib",
+    "-m",
+    "not network",
+]
+markers = ["network: calls a real external service (deselected by default)"]
 # Numerical warnings (overflow, invalid value, division by zero) must never pass silently.
 filterwarnings = ["error"]
 xfail_strict = true
 
 [tool.coverage.run]
-source = ["quantlab"]
+source = ["quantlab", "quantlab_connectors"]
 branch = true
 
 [tool.coverage.report]
