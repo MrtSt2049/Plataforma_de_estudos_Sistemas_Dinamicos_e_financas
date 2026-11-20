@@ -13,6 +13,13 @@ quantlab.dynamics
     Dynamical systems: the logistic map (fixed-point stability, periodic
     orbits, Lyapunov exponents) and the Lorenz system (adaptive integration,
     equilibria and their eigenvalues, the Hopf threshold).
+quantlab.data
+    Market data: canonical OHLCV schema, provider interface, CSV provider,
+    integrity checks and audited cleaning.
+quantlab.visualization
+    Plotly charts in the QuantLab visual identity (optional extra ``plot``).
+quantlab.research
+    Research Core: seeds, experiments and reproducibility checks.
 """
 
 from importlib.metadata import PackageNotFoundError, version
