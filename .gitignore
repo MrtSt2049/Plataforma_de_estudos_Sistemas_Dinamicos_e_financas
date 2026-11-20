@@ -27,6 +27,12 @@ dist/
 htmlcov/
 coverage.xml
 
+# Node (frontend): dependencies and build output. Keep package-lock.json.
+node_modules/
+.next/
+*.tsbuildinfo
+npm-debug.log*
+
 # Notebooks
 .ipynb_checkpoints/
 
