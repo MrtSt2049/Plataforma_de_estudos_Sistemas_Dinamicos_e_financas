@@ -169,7 +169,7 @@ flowchart TD
 #### 5.1. Fundação do Frontend (`frontend/`)
 - Setup com **Vite + React + TypeScript** (modo strict, sem `any`). As variáveis públicas são `VITE_SUPABASE_URL` e `VITE_SUPABASE_PUBLISHABLE_KEY`, e a porta de desenvolvimento (CORS) é a 5173 ([ADR 0007](adr/0007-chaves-supabase-jwks-e-frontend.md)).
 - Configuração do TailwindCSS mapeando fielmente a paleta de cores e tokens do design system (`Assets/`):
-  - Fundo / Superfície: `#0B0F14` / `#111820` / `#18222C`
+  - Fundo / Superfície: `#0B0F14` / `#111820` / `#17212B` (a mesma superfície do motor, em `visualization/theme.py`)
   - Borda: `#263442`
   - Azul Analítico: `#3B82F6`
   - Roxo Científico: `#8B5CF6`
