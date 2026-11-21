@@ -107,9 +107,8 @@ describe('ResearchLabPage', () => {
 
 describe('OverviewPage', () => {
   it('renders system status and quick links', () => {
-    renderWithAuth(<OverviewPage />, {
-      auth: { session: fakeSession('pesquisador@quantlab.ai'), user: { id: '1', email: 'pesquisador@quantlab.ai' } as any },
-    })
+    const session = fakeSession('pesquisador@quantlab.ai')
+    renderWithAuth(<OverviewPage />, { auth: { session, user: session.user } })
 
     expect(screen.getByText('Visão geral')).toBeInTheDocument()
     expect(screen.getByText('pesquisador@quantlab.ai')).toBeInTheDocument()

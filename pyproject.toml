@@ -45,7 +45,7 @@ line-length = 100
 target-version = "py312"
 src = ["engine", "connectors", "workflows", "tests"]
 # Vendored agent skills and design assets are not project code.
-extend-exclude = [".agents", "Assets"]
+extend-exclude = [".agents", ".claude", "Assets"]
 
 [tool.ruff.lint]
 select = [

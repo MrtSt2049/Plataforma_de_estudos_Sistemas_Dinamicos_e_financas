@@ -30,6 +30,13 @@ const TABS: TabItem[] = [
   { id: 'projects', label: 'Projetos de Pesquisa', icon: <FolderKanban className="h-3.5 w-3.5 text-dynamic" /> },
 ]
 
+const MODEL_IDS = ['lorenz', 'logistic_map', 'market_risk'] as const
+type ModelId = (typeof MODEL_IDS)[number]
+
+function isModelId(value: string): value is ModelId {
+  return (MODEL_IDS as readonly string[]).includes(value)
+}
+
 export default function ResearchLabPage() {
   const [activeTab, setActiveTab] = useState('experiments')
   const [projects] = useState<ResearchProject[]>(initialProjectsDemo)
@@ -43,7 +50,7 @@ export default function ResearchLabPage() {
   const [showNewExpModal, setShowNewExpModal] = useState(false)
   const [formName, setFormName] = useState('')
   const [formHypothesis, setFormHypothesis] = useState('')
-  const [formModel, setFormModel] = useState<'lorenz' | 'logistic_map' | 'market_risk'>('lorenz')
+  const [formModel, setFormModel] = useState<ModelId>('lorenz')
   const [formSeed, setFormSeed] = useState(42)
   const [formError, setFormError] = useState<string | null>(null)
 
@@ -280,7 +287,10 @@ export default function ResearchLabPage() {
                 </label>
                 <select
                   value={formModel}
-                  onChange={(e) => setFormModel(e.target.value as any)}
+                  onChange={(e) => {
+                    // A <select> only yields its own options, but the type is checked, not assumed.
+                    if (isModelId(e.target.value)) setFormModel(e.target.value)
+                  }}
                   className="h-8 rounded-md border border-line bg-surface px-2.5 text-[13px] text-fg outline-none focus:border-analytic"
                 >
                   <option value="lorenz">Sistema de Lorenz</option>
