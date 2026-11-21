@@ -39,23 +39,23 @@ export const navigation: readonly NavGroup[] = [
   {
     label: 'Finanças quantitativas',
     items: [
-      { label: 'Retornos', to: '/retornos', icon: TrendingUp, ready: false },
-      { label: 'Risco', to: '/risco', icon: Activity, ready: false },
+      { label: 'Retornos', to: '/retornos', icon: TrendingUp, ready: true },
+      { label: 'Risco', to: '/risco', icon: Activity, ready: true },
       { label: 'Correlação', to: '/correlacao', icon: Grid3X3, ready: false },
     ],
   },
   {
     label: 'Sistemas dinâmicos',
     items: [
-      { label: 'Mapa logístico', to: '/dinamica/logistico', icon: Waypoints, ready: false },
-      { label: 'Sistema de Lorenz', to: '/dinamica/lorenz', icon: Waypoints, ready: false },
+      { label: 'Mapa logístico', to: '/dinamica/logistico', icon: Waypoints, ready: true },
+      { label: 'Sistema de Lorenz', to: '/dinamica/lorenz', icon: Waypoints, ready: true },
     ],
   },
   {
     label: 'Pesquisa',
     items: [
-      { label: 'Projetos', to: '/projetos', icon: FolderOpen, ready: false },
-      { label: 'Experimentos', to: '/experimentos', icon: FlaskConical, ready: false },
+      { label: 'Projetos', to: '/projetos', icon: FolderOpen, ready: true },
+      { label: 'Experimentos', to: '/experimentos', icon: FlaskConical, ready: true },
     ],
   },
 ]

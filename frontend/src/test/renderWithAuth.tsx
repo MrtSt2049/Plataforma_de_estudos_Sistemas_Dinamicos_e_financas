@@ -1,8 +1,10 @@
 import { render } from '@testing-library/react'
 import type { ReactElement } from 'react'
 import { MemoryRouter } from 'react-router-dom'
+import { QueryClientProvider } from '@tanstack/react-query'
 import { vi } from 'vitest'
 import { AuthContext, type AuthContextValue } from '@/contexts/AuthContext'
+import { createQueryClient } from '@/queryClient'
 
 export function fakeAuth(overrides: Partial<AuthContextValue> = {}): AuthContextValue {
   return {
@@ -30,10 +32,13 @@ export function renderWithAuth(
   options: { auth?: Partial<AuthContextValue>; route?: string | { pathname: string; state?: unknown } } = {},
 ) {
   const auth = fakeAuth(options.auth)
+  const queryClient = createQueryClient()
   const result = render(
-    <AuthContext value={auth}>
-      <MemoryRouter initialEntries={[options.route ?? '/']}>{ui}</MemoryRouter>
-    </AuthContext>,
+    <QueryClientProvider client={queryClient}>
+      <AuthContext value={auth}>
+        <MemoryRouter initialEntries={[options.route ?? '/']}>{ui}</MemoryRouter>
+      </AuthContext>
+    </QueryClientProvider>,
   )
   return { auth, ...result }
 }
