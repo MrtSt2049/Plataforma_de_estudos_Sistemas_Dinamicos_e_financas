@@ -32,6 +32,7 @@ FORBIDDEN_TOP_LEVEL_PACKAGES = {
     "yfinance",
     "curl_cffi",
     "quantlab_connectors",
+    "quantlab_workflows",
 }
 
 

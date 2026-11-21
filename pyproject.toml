@@ -36,13 +36,14 @@ build-backend = "hatchling.build"
 
 # The engine lives in engine/quantlab (see docs/adr/0001). The import name stays `quantlab`.
 # Connectors to external services live in connectors/, outside the engine (docs/adr/0005).
+# Workflows and agentic orchestration live in workflows/, outside the engine (docs/adr/0008).
 [tool.hatch.build.targets.wheel]
-packages = ["engine/quantlab", "connectors/quantlab_connectors"]
+packages = ["engine/quantlab", "connectors/quantlab_connectors", "workflows/quantlab_workflows"]
 
 [tool.ruff]
 line-length = 100
 target-version = "py312"
-src = ["engine", "connectors", "tests"]
+src = ["engine", "connectors", "workflows", "tests"]
 # Vendored agent skills and design assets are not project code.
 extend-exclude = [".agents", "Assets"]
 
@@ -76,8 +77,8 @@ convention = "numpy"
 [tool.mypy]
 python_version = "3.12"
 strict = true
-files = ["engine/quantlab", "connectors/quantlab_connectors", "tests"]
-mypy_path = ["engine", "connectors"]
+files = ["engine/quantlab", "connectors/quantlab_connectors", "workflows/quantlab_workflows", "tests"]
+mypy_path = ["engine", "connectors", "workflows"]
 warn_unreachable = true
 
 [[tool.mypy.overrides]]

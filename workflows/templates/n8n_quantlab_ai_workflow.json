@@ -1,0 +1,146 @@
+{
+  "name": "QuantLab - AI Quantitative & Dynamics Workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 18 * * 1-5"
+            }
+          ]
+        }
+      },
+      "name": "Daily Market Close Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        250,
+        300
+      ],
+      "id": "trigger-cron-1"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "quantlab-trigger",
+        "options": {}
+      },
+      "name": "Webhook Manual/Anomaly Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        250,
+        480
+      ],
+      "id": "trigger-webhook-1"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://localhost:8000/api/workflows/run/",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "symbol",
+              "value": "PETR4.SA"
+            },
+            {
+              "name": "model",
+              "value": "quantitative_risk_and_dynamics"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "Fetch QuantLab Context & Metrics",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        500,
+        390
+      ],
+      "id": "action-fetch-context-1"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=You are QuantLab Lead Scientific Reviewer. Analyze the following quantitative risk metrics and dynamics results: {{ $json.body }}. Evaluate whether the regime is stable or volatile, and generate a concise executive summary."
+      },
+      "name": "AI Decision Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.6,
+      "position": [
+        750,
+        390
+      ],
+      "id": "agent-decision-1"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO experiment_runs (id, experiment_id, status, metrics_summary, created_at) VALUES (gen_random_uuid(), '00000000-0000-0000-0000-000000000000', 'completed', '{{ JSON.stringify($json) }}', NOW());"
+      },
+      "name": "Registry in Supabase/Postgres",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        1000,
+        390
+      ],
+      "id": "registry-supabase-1"
+    }
+  ],
+  "connections": {
+    "Daily Market Close Trigger": {
+      "main": [
+        [
+          {
+            "node": "Fetch QuantLab Context & Metrics",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook Manual/Anomaly Trigger": {
+      "main": [
+        [
+          {
+            "node": "Fetch QuantLab Context & Metrics",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch QuantLab Context & Metrics": {
+      "main": [
+        [
+          {
+            "node": "AI Decision Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Decision Agent": {
+      "main": [
+        [
+          {
+            "node": "Registry in Supabase/Postgres",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  }
+}
